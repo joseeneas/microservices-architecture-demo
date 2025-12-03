@@ -1,2 +1,6 @@
+# Python dependencies for the Users microservice
+# 
+# fastapi - Modern, fast web framework for building APIs with Python 3.7+
+# uvicorn[standard] - ASGI server implementation with standard extra dependencies (websockets, httptools, uvloop)
 fastapi
 uvicorn[standard]

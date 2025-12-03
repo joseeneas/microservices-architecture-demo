@@ -1,2 +1,11 @@
+# Orders Service - Python Dependencies
+# This file specifies the Python package requirements for the orders microservice.
+#
+# Core Dependencies:
+# - fastapi: Modern, fast web framework for building APIs with Python 3.7+
+# - uvicorn[standard]: ASGI server implementation with standard extras (websockets, HTTP/2, etc.)
+#
+# Installation:
+# pip install -r requirements.txt
 fastapi
 uvicorn[standard]

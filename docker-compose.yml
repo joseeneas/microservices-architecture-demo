@@ -1,3 +1,8 @@
+# API Gateway Service
+# This service acts as the entry point for client requests and routes them to the appropriate microservices.
+# It depends on the users, orders, and inventory services to be running.
+# The gateway is built from the ./gateway directory and exposes port 8080 on the host, which maps to port 80 in the container.
+# It operates within the 'msnet' network to communicate with other services.
 services:
   gateway:
     build: ./gateway
@@ -10,21 +15,72 @@ services:
     networks:
       - msnet
 
+  # Users Service
+  # Builds the users microservice from the ./services/users directory
+  # Connected to the msnet network for inter-service communication
+  # This service manages user-related operations such as registration, authentication, and profile management.
+  # It is built from a local Dockerfile to allow for custom configurations specific to user management.
+  # The users service is a critical component of the microservices architecture, ensuring secure and efficient handling of user data.
+  # Configuration:
+  # - Build Context: ./services/users
+  # - Network: msnet
   users:
     build: ./services/users
     networks:
       - msnet
 
+  # Orders Service
+  # 
+  # This service handles order management functionality within the microservices architecture.
+  # 
+  # Configuration:
+  # - Build Context: ./services/orders - Contains the Dockerfile and application code for the orders service
+  # - Network: msnet - Connects to the shared microservices network for inter-service communication
+  # 
+  # The orders service is built from a local Dockerfile rather than using a pre-built image,
+  # allowing for custom configuration and dependencies specific to order processing operations.
+  # It is essential for managing customer orders, processing transactions, and maintaining order history.
   orders:
     build: ./services/orders
     networks:
       - msnet
 
+  # Inventory Service
+  # 
+  # This service manages product inventory and stock levels in the microservices architecture.
+  # 
+  # Build Configuration:
+  #   - Context: ./services/inventory directory
+  #   - Uses Dockerfile from the inventory service directory
+  # 
+  # Network Configuration:
+  #   - Connected to 'msnet' network for inter-service communication
+  #   - Enables communication with other microservices in the architecture
+  # 
+  # Purpose:
+  #   - Handles inventory tracking and management
+  #   - Maintains stock levels and product availability
+  #   - Provides inventory data to other services
   inventory:
     build: ./services/inventory
     networks:
       - msnet
 
+# Docker Compose Network Configuration
+# 
+# This section defines a custom bridge network named 'msnet' for the microservices architecture.
+# 
+# Network Details:
+# - Name: msnet
+# - Driver: bridge (default Docker network driver that allows containers on the same host to communicate)
+# 
+# Purpose:
+# The bridge network enables isolated communication between containers while allowing them to
+# reach each other using container names as hostnames. This is ideal for microservices that
+# need to communicate within the same Docker host environment.
+#
+# Usage:
+# Services can connect to this network by adding 'networks: - msnet' to their service definition.
 networks:
   msnet:
     driver: bridge
