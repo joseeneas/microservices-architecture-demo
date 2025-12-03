@@ -1,0 +1,30 @@
+services:
+  gateway:
+    build: ./gateway
+    depends_on:
+      - users
+      - orders
+      - inventory
+    ports:
+      - "8080:80"
+    networks:
+      - msnet
+
+  users:
+    build: ./services/users
+    networks:
+      - msnet
+
+  orders:
+    build: ./services/orders
+    networks:
+      - msnet
+
+  inventory:
+    build: ./services/inventory
+    networks:
+      - msnet
+
+networks:
+  msnet:
+    driver: bridge
