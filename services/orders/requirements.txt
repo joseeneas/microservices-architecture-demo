@@ -4,8 +4,12 @@
 # Core Dependencies:
 # - fastapi: Modern, fast web framework for building APIs with Python 3.7+
 # - uvicorn[standard]: ASGI server implementation with standard extras (websockets, HTTP/2, etc.)
+# - sqlalchemy: SQL toolkit and ORM for database operations
+# - psycopg2-binary: PostgreSQL adapter for Python
 #
 # Installation:
 # pip install -r requirements.txt
 fastapi
 uvicorn[standard]
+sqlalchemy
+psycopg2-binary

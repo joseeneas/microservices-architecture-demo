@@ -3,5 +3,9 @@
 # fastapi - Modern, fast web framework for building APIs with Python 3.7+
 # uvicorn[standard] - Lightning-fast ASGI server with standard extra dependencies
 #   (includes websockets, httptools, and other performance enhancements)
+# sqlalchemy - SQL toolkit and ORM for database operations
+# psycopg2-binary - PostgreSQL adapter for Python
 fastapi
 uvicorn[standard]
+sqlalchemy
+psycopg2-binary
