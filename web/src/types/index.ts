@@ -2,6 +2,8 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  role: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -15,11 +17,18 @@ export interface UserUpdate {
   email?: string;
 }
 
+export interface OrderItem {
+  sku: string;
+  quantity: number;
+  price: string | number;
+}
+
 export interface Order {
   id: string;
   user_id: number;
   total: string;
   status: string;
+  items: OrderItem[];
   created_at: string;
 }
 
@@ -28,12 +37,14 @@ export interface OrderCreate {
   user_id: number;
   total: number;
   status?: string;
+  items: OrderItem[];
 }
 
 export interface OrderUpdate {
   user_id?: number;
   total?: number;
   status?: string;
+  items?: OrderItem[];
 }
 
 export interface InventoryItem {

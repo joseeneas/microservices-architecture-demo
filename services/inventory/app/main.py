@@ -16,7 +16,7 @@ from typing import List
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
+from . import crud, models, schemas, auth
 from .database import engine, get_db
 
 # Create database tables
@@ -43,14 +43,20 @@ def health():
     return {"status": "healthy"}
 
 @app.get("/", response_model=List[schemas.InventoryItem])
-def list_inventory_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_inventory_items(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.get_current_user)
+):
     """
-    List all inventory items with pagination.
+    List all inventory items with pagination (authenticated users only).
 
     Args:
         skip: Number of records to skip (default: 0)
         limit: Maximum number of records to return (default: 100)
         db: Database session (injected)
+        current_user: Current authenticated user (injected)
 
     Returns:
         List of inventory item objects
@@ -59,13 +65,18 @@ def list_inventory_items(skip: int = 0, limit: int = 100, db: Session = Depends(
     return items
 
 @app.get("/{item_id}", response_model=schemas.InventoryItem)
-def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
+def get_inventory_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.get_current_user)
+):
     """
-    Get a single inventory item by ID.
+    Get a single inventory item by ID (authenticated users only).
 
     Args:
         item_id: ID of the inventory item to retrieve
         db: Database session (injected)
+        current_user: Current authenticated user (injected)
 
     Returns:
         Inventory item object
@@ -79,13 +90,18 @@ def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
     return db_item
 
 @app.post("/", response_model=schemas.InventoryItem, status_code=status.HTTP_201_CREATED)
-def create_inventory_item(item: schemas.InventoryItemCreate, db: Session = Depends(get_db)):
+def create_inventory_item(
+    item: schemas.InventoryItemCreate,
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.require_admin)
+):
     """
-    Create a new inventory item.
+    Create a new inventory item (admin only).
 
     Args:
         item: Inventory item data to create
         db: Database session (injected)
+        current_user: Current authenticated admin user (injected)
 
     Returns:
         Created inventory item object
@@ -99,14 +115,20 @@ def create_inventory_item(item: schemas.InventoryItemCreate, db: Session = Depen
     return crud.create_inventory_item(db=db, item=item)
 
 @app.put("/{item_id}", response_model=schemas.InventoryItem)
-def update_inventory_item(item_id: int, item: schemas.InventoryItemUpdate, db: Session = Depends(get_db)):
+def update_inventory_item(
+    item_id: int,
+    item: schemas.InventoryItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.require_admin)
+):
     """
-    Update an existing inventory item.
+    Update an existing inventory item (admin only).
 
     Args:
         item_id: ID of the inventory item to update
         item: Updated item data
         db: Database session (injected)
+        current_user: Current authenticated admin user (injected)
 
     Returns:
         Updated inventory item object
@@ -120,13 +142,18 @@ def update_inventory_item(item_id: int, item: schemas.InventoryItemUpdate, db: S
     return db_item
 
 @app.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
+def delete_inventory_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.require_admin)
+):
     """
-    Delete an inventory item.
+    Delete an inventory item (admin only).
 
     Args:
         item_id: ID of the inventory item to delete
         db: Database session (injected)
+        current_user: Current authenticated admin user (injected)
 
     Returns:
         None (204 No Content)

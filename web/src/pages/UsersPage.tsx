@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../services/usersApi';
+import { DataTable } from '../components/DataTable';
 import type { User, UserCreate } from '../types';
 
 export function UsersPage() {
@@ -75,57 +76,55 @@ export function UsersPage() {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
 
+  const columns = [
+    { key: 'id', label: 'ID' },
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    {
+      key: 'role',
+      label: 'Role',
+      render: (user: User) => (
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            user.role === 'admin'
+              ? 'bg-purple-100 text-purple-800'
+              : 'bg-gray-100 text-gray-800'
+          }`}
+        >
+          {user.role}
+        </span>
+      ),
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      render: (user: User) => new Date(user.created_at).toLocaleDateString(),
+    },
+  ];
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Users</h2>
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">Users</h2>
+          <p className="text-gray-600 mt-1">Manage user accounts and permissions</p>
+        </div>
         <button
           onClick={openCreateModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-medium shadow-sm"
         >
           + Add User
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {users?.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm text-gray-900">{user.id}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">{user.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {new Date(user.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 text-right text-sm space-x-2">
-                  <button
-                    onClick={() => openEditModal(user)}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(user.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={users || []}
+        columns={columns}
+        onEdit={openEditModal}
+        onDelete={(user) => handleDelete(user.id)}
+        searchable={true}
+        searchKeys={['name', 'email']}
+      />
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

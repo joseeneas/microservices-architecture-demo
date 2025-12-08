@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '../services/inventoryApi';
+import { DataTable } from '../components/DataTable';
 import type { InventoryItem, InventoryItemCreate } from '../types';
 
 export function InventoryPage() {
@@ -70,6 +71,39 @@ export function InventoryPage() {
     }
   };
 
+  const columns = [
+    { key: 'id', label: 'ID' },
+    {
+      key: 'sku',
+      label: 'SKU',
+      render: (item: InventoryItem) => (
+        <span className="font-mono font-medium">{item.sku}</span>
+      ),
+    },
+    {
+      key: 'qty',
+      label: 'Quantity',
+      render: (item: InventoryItem) => (
+        <span
+          className={`font-medium ${
+            item.qty === 0
+              ? 'text-red-600'
+              : item.qty < 20
+              ? 'text-yellow-600'
+              : 'text-green-600'
+          }`}
+        >
+          {item.qty}
+        </span>
+      ),
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      render: (item: InventoryItem) => new Date(item.created_at).toLocaleDateString(),
+    },
+  ];
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
@@ -77,54 +111,26 @@ export function InventoryPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Inventory</h2>
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">Inventory</h2>
+          <p className="text-gray-600 mt-1">Track and manage product stock levels</p>
+        </div>
         <button
           onClick={openCreateModal}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition font-medium shadow-sm"
         >
           + Add Item
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {items?.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm text-gray-900">{item.id}</td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.sku}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">{item.qty}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {new Date(item.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 text-right text-sm space-x-2">
-                  <button
-                    onClick={() => openEditModal(item)}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={items || []}
+        columns={columns}
+        onEdit={openEditModal}
+        onDelete={(item) => handleDelete(item.id)}
+        searchable={true}
+        searchKeys={['sku']}
+      />
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
