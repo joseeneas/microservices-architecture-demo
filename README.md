@@ -25,7 +25,7 @@ Key functions of NGINX:
 
 ## Prerequisites
 
-- Docker and Docker Compose
+* Docker and Docker Compose
 
 ## Quick start
 
@@ -50,13 +50,12 @@ curl http://localhost:8080/inventory/
 
 ## UI
 
-- Open `http://localhost:8080/` for the minimal UI served by the gateway.
-- Swagger docs: `/users/docs`, `/orders/docs`, `/inventory/docs`.
+* Open `http://localhost:8080/` for the minimal UI served by the gateway.
+* Swagger docs: `/users/docs`, `/orders/docs`, `/inventory/docs`.
 
 ## Project layout
 
-```
-.
+```plaintext
 ├── docker-compose.yml
 ├── gateway/
 │   ├── Dockerfile

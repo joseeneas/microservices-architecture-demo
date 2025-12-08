@@ -17,11 +17,13 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
   - Run detached: `docker compose up -d users`
 
 Local (non-Docker) service run for development:
+
 - From a service directory (e.g., `services/users`):
   - Install deps: `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
   - Run: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
 
 Notes on linting/tests:
+
 - No project-level lint or test configuration is present (no pytest/flake8 configs found). If tests are added later, document the commands here (including how to run a single test).
 
 ## Big-picture architecture
