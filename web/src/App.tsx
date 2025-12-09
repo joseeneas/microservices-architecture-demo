@@ -25,11 +25,13 @@ function Dashboard() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-        {activeTab === 'users' && <UsersPage />}
-        {activeTab === 'orders' && <OrdersPage />}
-        {activeTab === 'inventory' && <InventoryPage />}
-      </Layout>
+      <div className="min-h-screen bg-blue-50">
+        <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+          {activeTab === 'users' && <UsersPage />}
+          {activeTab === 'orders' && <OrdersPage />}
+          {activeTab === 'inventory' && <InventoryPage />}
+        </Layout>
+      </div>
     </QueryClientProvider>
   );
 }
