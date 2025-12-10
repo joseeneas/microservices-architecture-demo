@@ -15,38 +15,38 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   ];
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-gray-900 text-white">
+    <div className="flex flex-col h-screen w-64 bg-[#0f172a] border-r border-slate-800 text-[#ffffff]">
       {/* Logo/Brand */}
-      <div className="p-6 border-b border-gray-800">
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm text-gray-400 mt-1">Microservices Demo</p>
+      <div className="p-8 border-b border-slate-800 bg-[#0f172a]">
+        <h1 className="text-2xl font-bold text-[#ffffff]">Dashboard</h1>
+        <p className="text-sm text-[#ffffff] mt-1">Microservices Demo</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 px-6 pt-8 pb-8 space-y-4">
         {navItems.map((item) => (
           <button
-            key={item.id}
-            onClick={() => onTabChange(item.id)}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-              activeTab === item.id
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-            }`}
+        key={item.id}
+        onClick={() => onTabChange(item.id)}
+        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
+          activeTab === item.id
+            ? 'bg-blue-600 text-[#ffffff] shadow-lg'
+            : 'text-[#ffffff] hover:bg-gray-800 hover:text-[#ffffff]'
+        }`}
           >
-            <span className="text-2xl">{item.icon}</span>
-            <span className="font-medium">{item.label}</span>
+        <span className="text-2xl">{item.icon}</span>
+        <span className="font-medium">{item.label}</span>
           </button>
         ))}
       </nav>
 
       {/* User Info & Logout */}
-      <div className="p-4 border-t border-gray-800">
-        <div className="mb-3">
-          <p className="text-sm text-gray-400">Signed in as</p>
-          <p className="font-medium text-white truncate">{user?.email}</p>
-          <p className="text-xs text-gray-400 mt-1">
-            Role: <span className="text-blue-400 font-medium">{user?.role}</span>
+      <div className="p-8 border-t border-slate-800">
+        <div className="mb-4">
+          <p className="text-sm text-[#ffffff]">Signed in as</p>
+          <p className="font-medium text-[#ffffff] truncate">{user?.email}</p>
+          <p className="text-xs text-[#ffffff] mt-1">
+            Role: <span className="text-[#ffffff] font-medium">{user?.role}</span>
           </p>
         </div>
         <button

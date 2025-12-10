@@ -10,6 +10,11 @@ export default {
       colors: {
         primary: '#1E40AF',
         secondary: '#F59E0B',
+        darkblue: '#1e3a5f'
+      },
+      backgroundColor: {
+        'custom-bg': '#f5f5f5',
+        'dark-bg': '#1a1a1a',
       },
       fontFamily: {
         sans: ['Arial', 'Helvetica', 'sans-serif'],
