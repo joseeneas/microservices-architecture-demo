@@ -128,6 +128,55 @@ def get_current_user_info(current_user: models.User = Depends(auth.get_current_u
     """
     return current_user
 
+@app.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
+def create_user_admin(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin)
+):
+    """
+    Create a new user (admin only).
+
+    Generates a default password (password123) which the user should change later.
+    """
+    # Prevent duplicate emails
+    if crud.get_user_by_email(db, email=user.email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Use provided temp password or default
+    raw_password = user.password if getattr(user, "password", None) else "password123"
+    temp_hash = auth.get_password_hash(raw_password)
+    db_user = models.User(
+        name=user.name,
+        email=user.email,
+        password_hash=temp_hash,
+        role="user",
+        is_active=True,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.post("/{user_id}/reset_password", response_model=dict)
+def reset_password(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin)
+):
+    """
+    Reset a user's password (admin only). Returns a new temporary password once.
+    """
+    import secrets, string
+    db_user = crud.get_user(db, user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    alphabet = string.ascii_letters + string.digits
+    temp_pw = "".join(secrets.choice(alphabet) for _ in range(12))
+    db_user.password_hash = auth.get_password_hash(temp_pw)
+    db.commit()
+    return {"temp_password": temp_pw}
+
 @app.get("/", response_model=List[schemas.User])
 def list_users(
     skip: int = 0,

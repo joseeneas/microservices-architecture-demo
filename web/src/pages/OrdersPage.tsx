@@ -142,7 +142,7 @@ export function OrdersPage() {
       key: 'items',
       label: 'Items',
       render: (order: Order) => (
-        <span className="text-gray-600">{order.items?.length || 0} item(s)</span>
+        <span className="text-muted">{order.items?.length || 0} item(s)</span>
       ),
     },
     {
@@ -157,12 +157,12 @@ export function OrdersPage() {
         <span
           className={`px-2 py-1 text-xs font-medium rounded-full ${
             order.status === 'completed'
-              ? 'bg-green-100 text-green-800'
+              ? 'bg-success-bg text-success-fg'
               : order.status === 'pending'
-              ? 'bg-yellow-100 text-yellow-800'
+              ? 'bg-warning-bg text-warning-fg'
               : order.status === 'cancelled'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-gray-100 text-gray-800'
+              ? 'bg-error-bg text-error-fg'
+              : 'bg-neutral-bg text-onSurface'
           }`}
         >
           {order.status}
@@ -184,8 +184,8 @@ export function OrdersPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Orders</h2>
-          <p className="text-gray-600 mt-1">Manage customer orders and track status</p>
+          <h2 className="text-3xl font-bold text-onSurface">Orders</h2>
+          <p className="text-muted mt-1">Manage customer orders and track status</p>
         </div>
         <button
           onClick={openCreateModal}
@@ -220,7 +220,7 @@ export function OrdersPage() {
             <form onSubmit={handleSubmit}>
               {!editingOrder && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Order ID</label>
+                <label className="block text-sm font-medium text-onSurface mb-1">Order ID</label>
                   <input
                     type="text"
                     value={formData.id}
@@ -232,7 +232,7 @@ export function OrdersPage() {
               )}
               
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">User</label>
+                <label className="block text-sm font-medium text-onSurface mb-1">User</label>
                 <select
                   value={formData.user_id}
                   onChange={(e) => setFormData({ ...formData, user_id: parseInt(e.target.value) })}
@@ -249,7 +249,7 @@ export function OrdersPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Order Items</label>
+                <label className="block text-sm font-medium text-onSurface mb-2">Order Items</label>
                 <div className="border border-gray-300 rounded-lg p-4 mb-2">
                   <div className="grid grid-cols-4 gap-2 mb-2">
                     <div className="col-span-2">
@@ -303,9 +303,9 @@ export function OrdersPage() {
 
                 {formData.items.length > 0 && (
                   <div className="border border-gray-300 rounded-lg p-3">
-                    <div className="text-xs font-medium text-gray-500 mb-2">Added Items:</div>
+                  <div className="text-xs font-medium text-muted mb-2">Added Items:</div>
                     {formData.items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center text-sm mb-1 bg-gray-50 p-2 rounded">
+                      <div key={index} className="flex justify-between items-center text-sm mb-1 bg-surface p-2 rounded">
                         <span>
                           {item.sku} × {item.quantity} @ ${typeof item.price === 'string' ? item.price : item.price.toFixed(2)}
                         </span>
@@ -323,19 +323,19 @@ export function OrdersPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
+                <label className="block text-sm font-medium text-onSurface mb-1">Total</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.total}
                   readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-surface"
                 />
-                <p className="text-xs text-gray-500 mt-1">Auto-calculated from items</p>
+                <p className="text-xs text-muted mt-1">Auto-calculated from items</p>
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label className="block text-sm font-medium text-onSurface mb-1">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -348,7 +348,7 @@ export function OrdersPage() {
               </div>
 
               <div className="flex justify-end space-x-3">
-                <button type="button" onClick={closeModal} className="px-4 py-2 text-gray-700 hover:text-gray-900">
+                <button type="button" onClick={closeModal} className="px-4 py-2 text-onSurface/70 hover:text-onSurface">
                   Cancel
                 </button>
                 <button 

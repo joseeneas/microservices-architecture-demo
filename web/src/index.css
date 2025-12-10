@@ -4,3 +4,20 @@
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
+@theme {
+  --color-brand: #0f172a;     /* sidebar background */
+  --color-onBrand: #ffffff;   /* sidebar text */
+  --color-surface: #f8fafc;   /* page background (slate-50) */
+  --color-onSurface: #0f172a; /* default body text on surface */
+  --color-muted: #64748b;     /* secondary text */
+  --color-success: #16a34a;    /* success base */
+  --color-warning: #ca8a04;    /* warning base */
+  --color-error: #dc2626;      /* error base */
+  --color-success-bg: #dcfce7; /* success chip bg */
+  --color-success-fg: #166534; /* success chip fg */
+  --color-warning-bg: #fef9c3; /* warning chip bg */
+  --color-warning-fg: #854d0e; /* warning chip fg */
+  --color-error-bg: #fee2e2;   /* error chip bg */
+  --color-error-fg: #991b1b;   /* error chip fg */
+  --color-neutral-bg: #f3f4f6; /* neutral chip bg (gray-100) */
+}

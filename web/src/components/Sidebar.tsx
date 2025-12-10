@@ -15,11 +15,11 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   ];
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-[#0f172a] border-r border-slate-800 text-[#ffffff]">
+    <div className="flex flex-col h-screen w-64 bg-brand border-r border-slate-800 text-onBrand">
       {/* Logo/Brand */}
-      <div className="p-8 border-b border-slate-800 bg-[#0f172a]">
-        <h1 className="text-2xl font-bold text-[#ffffff]">Dashboard</h1>
-        <p className="text-sm text-[#ffffff] mt-1">Microservices Demo</p>
+      <div className="p-8 border-b border-slate-800 bg-brand">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-sm mt-1">Microservices Demo</p>
       </div>
 
       {/* Navigation */}
@@ -30,8 +30,8 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         onClick={() => onTabChange(item.id)}
         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
           activeTab === item.id
-            ? 'bg-blue-600 text-[#ffffff] shadow-lg'
-            : 'text-[#ffffff] hover:bg-gray-800 hover:text-[#ffffff]'
+            ? 'bg-blue-600 text-onBrand shadow-lg'
+            : 'text-onBrand hover:bg-gray-800 hover:text-onBrand'
         }`}
           >
         <span className="text-2xl">{item.icon}</span>
@@ -43,10 +43,10 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
       {/* User Info & Logout */}
       <div className="p-8 border-t border-slate-800">
         <div className="mb-4">
-          <p className="text-sm text-[#ffffff]">Signed in as</p>
-          <p className="font-medium text-[#ffffff] truncate">{user?.email}</p>
-          <p className="text-xs text-[#ffffff] mt-1">
-            Role: <span className="text-[#ffffff] font-medium">{user?.role}</span>
+          <p className="text-sm text-onBrand">Signed in as</p>
+          <p className="font-medium text-onBrand truncate">{user?.email}</p>
+          <p className="text-xs text-onBrand mt-1">
+            Role: <span className="text-onBrand font-medium">{user?.role}</span>
           </p>
         </div>
         <button

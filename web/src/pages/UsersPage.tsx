@@ -8,7 +8,7 @@ export function UsersPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '' });
+  const [formData, setFormData] = useState<{ name: string; email: string; password?: string }>({ name: '', email: '', password: '' });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
@@ -88,7 +88,7 @@ export function UsersPage() {
           className={`px-2 py-1 text-xs font-medium rounded-full ${
             user.role === 'admin'
               ? 'bg-purple-100 text-purple-800'
-              : 'bg-gray-100 text-gray-800'
+              : 'bg-surface text-onSurface'
           }`}
         >
           {user.role}
@@ -106,8 +106,8 @@ export function UsersPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Users</h2>
-          <p className="text-gray-600 mt-1">Manage user accounts and permissions</p>
+          <h2 className="text-3xl font-bold text-onSurface">Users</h2>
+          <p className="text-muted mt-1">Manage user accounts and permissions</p>
         </div>
         <button
           onClick={openCreateModal}
@@ -134,7 +134,7 @@ export function UsersPage() {
             </h3>
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-onSurface mb-1">
                   Name
                 </label>
                 <input
@@ -146,7 +146,7 @@ export function UsersPage() {
                 />
               </div>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-onSurface mb-1">
                   Email
                 </label>
                 <input
@@ -157,11 +157,26 @@ export function UsersPage() {
                   required
                 />
               </div>
+              {!editingUser && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-onSurface mb-1">
+                    Temporary Password (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.password || ''}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="min 8 characters"
+                  />
+                </div>
+              )}
+
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                  className="px-4 py-2 text-onSurface/70 hover:text-onSurface"
                 >
                   Cancel
                 </button>
@@ -171,6 +186,18 @@ export function UsersPage() {
                 >
                   {editingUser ? 'Update' : 'Create'}
                 </button>
+                {editingUser && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const resp = await usersApi.resetPassword(editingUser.id);
+                      alert(`New temporary password for ${editingUser.email}: ${resp.temp_password}`);
+                    }}
+                    className="px-4 py-2 border border-[var(--color-border)] rounded-lg hover:bg-surface transition"
+                  >
+                    Reset Password
+                  </button>
+                )}
               </div>
             </form>
           </div>

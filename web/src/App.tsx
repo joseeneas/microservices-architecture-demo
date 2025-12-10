@@ -17,7 +17,7 @@ function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
       </div>
     );
@@ -25,7 +25,7 @@ function Dashboard() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-surface">
         <Layout activeTab={activeTab} onTabChange={setActiveTab}>
           {activeTab === 'users' && <UsersPage />}
           {activeTab === 'orders' && <OrdersPage />}
@@ -51,7 +51,7 @@ function AuthenticatedApp() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
       </div>
     );

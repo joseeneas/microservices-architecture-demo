@@ -19,6 +19,11 @@ export const usersApi = {
     return data;
   },
 
+  resetPassword: async (id: number): Promise<{ temp_password: string }> => {
+    const { data } = await apiClient.post(`${API_BASE}/${id}/reset_password`);
+    return data;
+  },
+
   update: async (id: number, user: UserUpdate): Promise<User> => {
     const { data } = await apiClient.put(`${API_BASE}/${id}`, user);
     return data;

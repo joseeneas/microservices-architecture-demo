@@ -10,6 +10,11 @@ export interface User {
 export interface UserCreate {
   name: string;
   email: string;
+  password?: string; // optional temp password
+}
+
+export interface ResetPasswordResponse {
+  temp_password: string;
 }
 
 export interface UserUpdate {

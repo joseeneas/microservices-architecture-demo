@@ -13,8 +13,8 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
-    """Schema for creating a new user (without password, for backward compatibility)."""
-    pass
+    """Schema for creating a new user by admin. Optional password; default will be used if omitted."""
+    password: Optional[str] = Field(default=None, min_length=8, description="Temporary password (min 8 chars)")
 
 class UserRegister(UserBase):
     """Schema for user registration with password."""

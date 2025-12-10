@@ -87,10 +87,10 @@ export function InventoryPage() {
         <span
           className={`font-medium ${
             item.qty === 0
-              ? 'text-red-600'
+              ? 'text-error'
               : item.qty < 20
-              ? 'text-yellow-600'
-              : 'text-green-600'
+              ? 'text-warning'
+              : 'text-success'
           }`}
         >
           {item.qty}
@@ -112,8 +112,8 @@ export function InventoryPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Inventory</h2>
-          <p className="text-gray-600 mt-1">Track and manage product stock levels</p>
+          <h2 className="text-3xl font-bold text-onSurface">Inventory</h2>
+          <p className="text-muted mt-1">Track and manage product stock levels</p>
         </div>
         <button
           onClick={openCreateModal}
@@ -140,7 +140,7 @@ export function InventoryPage() {
             </h3>
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+                <label className="block text-sm font-medium text-onSurface mb-1">SKU</label>
                 <input
                   type="text"
                   value={formData.sku}
@@ -150,7 +150,7 @@ export function InventoryPage() {
                 />
               </div>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <label className="block text-sm font-medium text-onSurface mb-1">Quantity</label>
                 <input
                   type="number"
                   value={formData.qty}
