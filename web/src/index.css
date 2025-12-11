@@ -20,4 +20,25 @@ body {
   --color-error-bg: #fee2e2;   /* error chip bg */
   --color-error-fg: #991b1b;   /* error chip fg */
   --color-neutral-bg: #f3f4f6; /* neutral chip bg (gray-100) */
+  --color-border: #e5e7eb;     /* default border (gray-300) */
+  --color-divider: #e5e7eb;    /* table dividers */
+  --color-focus: #3b82f6;      /* focus ring color (blue-500) */
+}
+
+@layer base {
+  *,*::before,*::after { box-sizing: border-box; }
+  button,input,select,textarea { font: inherit; color: inherit; margin: 0; letter-spacing: inherit; }
+  :where(button,[type='button'],[type='submit'],[role='button'],.btn) {
+    -webkit-appearance: none; appearance: none; border-radius: 0.5rem;
+  }
+  :where(input,select,textarea) {
+    border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.5rem 0.75rem; background-color: #fff; line-height: 1.5;
+  }
+  select { background-color: #fff; }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+  ::-moz-focus-inner { border: 0; padding: 0; }
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 }
