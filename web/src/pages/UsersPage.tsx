@@ -77,9 +77,9 @@ export function UsersPage() {
   }
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Name' },
-    { key: 'email', label: 'Email' },
+    { key: 'id', label: 'ID', sortable: true },
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'email', label: 'Email', sortable: true },
     {
       key: 'role',
       label: 'Role',

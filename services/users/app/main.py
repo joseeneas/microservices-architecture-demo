@@ -128,6 +128,41 @@ def get_current_user_info(current_user: models.User = Depends(auth.get_current_u
     """
     return current_user
 
+@app.get("/me/preferences", response_model=dict)
+def get_preferences(current_user: models.User = Depends(auth.get_current_user)):
+    """
+    Get current user's preferences.
+
+    Args:
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        User preferences dictionary
+    """
+    return current_user.preferences or {}
+
+@app.put("/me/preferences", response_model=dict)
+def update_preferences(
+    preferences_data: schemas.PreferencesUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Update current user's preferences.
+
+    Args:
+        preferences_data: New preferences data
+        db: Database session (injected)
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        Updated preferences dictionary
+    """
+    current_user.preferences = preferences_data.preferences
+    db.commit()
+    db.refresh(current_user)
+    return current_user.preferences
+
 @app.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 def create_user_admin(
     user: schemas.UserCreate,

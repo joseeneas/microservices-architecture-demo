@@ -72,10 +72,11 @@ export function InventoryPage() {
   };
 
   const columns = [
-    { key: 'id', label: 'ID' },
+    { key: 'id', label: 'ID', align: 'right' as const, sortable: true },
     {
       key: 'sku',
       label: 'SKU',
+      sortable: true,
       render: (item: InventoryItem) => (
         <span className="font-mono font-medium">{item.sku}</span>
       ),
@@ -83,6 +84,7 @@ export function InventoryPage() {
     {
       key: 'qty',
       label: 'Quantity',
+      align: 'right' as const,
       render: (item: InventoryItem) => (
         <span
           className={`font-medium ${

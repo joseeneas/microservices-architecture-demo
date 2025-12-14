@@ -5,6 +5,7 @@ Defines the database schema for user-related tables.
 """
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy.dialects.postgresql import JSONB
 from .database import Base
 
 class User(Base):
@@ -28,4 +29,5 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, default="user", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    preferences = Column(JSONB, default=dict, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

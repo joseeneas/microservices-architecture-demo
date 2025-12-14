@@ -136,11 +136,12 @@ export function OrdersPage() {
   };
 
   const columns = [
-    { key: 'id', label: 'Order ID' },
-    { key: 'user_id', label: 'User ID' },
+    { key: 'id', label: 'Order ID', sortable: true },
+    { key: 'user_id', label: 'User ID', align: 'right' as const, sortable: true },
     {
       key: 'items',
       label: 'Items',
+      align: 'right' as const,
       render: (order: Order) => (
         <span className="text-muted">{order.items?.length || 0} item(s)</span>
       ),
@@ -148,6 +149,7 @@ export function OrdersPage() {
     {
       key: 'total',
       label: 'Total',
+      align: 'right' as const,
       render: (order: Order) => <span className="font-medium">${order.total}</span>,
     },
     {

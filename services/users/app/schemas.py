@@ -4,7 +4,7 @@ Pydantic schemas for request/response validation in the Users service.
 These schemas define the structure of data for API requests and responses.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, EmailStr, Field
 
 class UserBase(BaseModel):
@@ -56,7 +56,12 @@ class User(UserBase):
     id: int
     role: str
     is_active: bool
+    preferences: Dict[str, Any] = {}
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+class PreferencesUpdate(BaseModel):
+    """Schema for updating user preferences."""
+    preferences: Dict[str, Any]

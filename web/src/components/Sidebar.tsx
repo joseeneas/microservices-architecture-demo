@@ -12,18 +12,19 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'orders', label: 'Orders', icon: '📦' },
     { id: 'inventory', label: 'Inventory', icon: '📊' },
+    { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-brand border-r border-slate-800 text-onBrand overflow-y-auto pb-6">
+    <div className="flex flex-col h-full w-64 bg-brand border-r border-slate-800 text-onBrand">
       {/* Logo/Brand */}
-      <div className="sticky top-0 z-10 p-8 border-b border-slate-800 bg-brand">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+      <div className="p-8 border-b border-slate-800 bg-brand shrink-0">
+        <h2 className="text-2xl font-bold">Dashboard</h2>
         <p className="text-sm mt-1">Microservices Demo</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 pt-8 pb-8" role="navigation" aria-label="Main Navigation">
+      <nav className="flex-1 min-h-0 px-4 pt-8 pb-8 overflow-y-auto" role="navigation" aria-label="Main Navigation">
         {navItems.map((item) => (
           <button
         key={item.id}
@@ -39,10 +40,9 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           </button>
         ))}
       </nav>
-
       {/* User Info & Logout */}
-      <div className="mt-auto p-8 pt-6 pb-16 border-t border-slate-800">
-        <div className="mb-auto">
+      <div className="p-6 pb-8 border-t border-slate-800 shrink-0">
+        <div className="mb-4">
           <p className="text-sm font-small text-onBrand">Signed in as {user?.email}{' '}
             Role: <span className="text-onBrand font-small">{user?.role}</span>
           </p>
@@ -54,7 +54,8 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           Logout
         </button>
         <div className="mt-4 text-center text-onBrand/70 text-xs" aria-label="App version">
-          v1.0 • Demo
+          v1.0 • Demo<br />
+          (c) 2025 Your Company
         </div>
       </div>
     </div>

@@ -5,6 +5,11 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'even:bg-gray-100',
+    'odd:bg-white',
+    'hover:bg-gray-200',
+  ],
   theme: {
     extend: {
       colors: {

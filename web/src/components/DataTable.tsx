@@ -4,6 +4,8 @@ interface Column<T> {
   key: string;
   label: string;
   render?: (item: T) => React.ReactNode;
+  align?: 'left' | 'center' | 'right';
+  sortable?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -13,6 +15,7 @@ interface DataTableProps<T> {
   onDelete?: (item: T) => void;
   searchable?: boolean;
   searchKeys?: string[];
+  tableName?: string;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -24,18 +27,47 @@ export function DataTable<T extends Record<string, any>>({
   searchKeys = [],
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  const filteredData = useMemo(() => {
-    if (!searchable || !searchTerm) return data;
+  const handleSort = (columnKey: string) => {
+    if (sortBy === columnKey) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(columnKey);
+      setSortOrder('asc');
+    }
+  };
 
-    return data.filter((item) => {
-      const searchLower = searchTerm.toLowerCase();
-      return searchKeys.some((key) => {
-        const value = item[key];
-        return value?.toString().toLowerCase().includes(searchLower);
+  const filteredAndSortedData = useMemo(() => {
+    let result = data;
+
+    // Filter
+    if (searchable && searchTerm) {
+      result = result.filter((item) => {
+        const searchLower = searchTerm.toLowerCase();
+        return searchKeys.some((key) => {
+          const value = item[key];
+          return value?.toString().toLowerCase().includes(searchLower);
+        });
       });
-    });
-  }, [data, searchTerm, searchable, searchKeys]);
+    }
+
+    // Sort
+    if (sortBy) {
+      result = [...result].sort((a, b) => {
+        const aVal = a[sortBy];
+        const bVal = b[sortBy];
+        
+        if (aVal === bVal) return 0;
+        
+        const comparison = aVal < bVal ? -1 : 1;
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [data, searchTerm, searchable, searchKeys, sortBy, sortOrder]);
 
   return (
     <div className="space-y-4">
@@ -50,7 +82,7 @@ export function DataTable<T extends Record<string, any>>({
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
           />
           <span className="text-sm text-muted">
-            {filteredData.length} {filteredData.length === 1 ? 'item' : 'items'}
+            {filteredAndSortedData.length} {filteredAndSortedData.length === 1 ? 'item' : 'items'}
           </span>
         </div>
       )}
@@ -64,9 +96,17 @@ export function DataTable<T extends Record<string, any>>({
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
+                    className={`px-6 py-3 text-xs font-medium text-muted uppercase tracking-wider ${
+                      column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
+                    } ${column.sortable ? 'cursor-pointer hover:bg-gray-100 select-none' : ''}`}
+                    onClick={() => column.sortable && handleSort(column.key)}
                   >
-                    {column.label}
+                    <div className="flex items-center gap-1">
+                      {column.label}
+                      {column.sortable && sortBy === column.key && (
+                        <span className="text-xs">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                      )}
+                    </div>
                   </th>
                 ))}
                 {(onEdit || onDelete) && (
@@ -76,8 +116,8 @@ export function DataTable<T extends Record<string, any>>({
                 )}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200 text-onSurface">
-              {filteredData.length === 0 ? (
+            <tbody className="divide-y divide-gray-200 text-onSurface">
+              {filteredAndSortedData.length === 0 ? (
                 <tr>
                   <td
                     colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
@@ -87,10 +127,12 @@ export function DataTable<T extends Record<string, any>>({
                   </td>
                 </tr>
               ) : (
-                filteredData.map((item, index) => (
-                  <tr key={index} className="hover:bg-surface transition-colors">
+                filteredAndSortedData.map((item, index) => (
+                  <tr key={index} className="transition-colors">
                     {columns.map((column) => (
-                      <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-onSurface">
+                      <td key={column.key} className={`px-6 py-4 whitespace-nowrap text-sm text-onSurface ${
+                        column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
+                      }`}>
                         {column.render ? column.render(item) : item[column.key]}
                       </td>
                     ))}
