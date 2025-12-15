@@ -32,6 +32,7 @@ class CurrentUser(BaseModel):
     id: int
     email: str
     role: str
+    token: str
 
 
 def get_current_user(
@@ -66,7 +67,7 @@ def get_current_user(
             raise credentials_exception
             
         user_id = int(user_id_str)
-        return CurrentUser(id=user_id, email=email, role=role)
+        return CurrentUser(id=user_id, email=email, role=role, token=token)
     except (JWTError, ValueError) as e:
         logger.error(f"JWT validation error: {e}")
         raise credentials_exception

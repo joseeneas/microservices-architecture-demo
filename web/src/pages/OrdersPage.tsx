@@ -136,25 +136,44 @@ export function OrdersPage() {
   };
 
   const columns = [
-    { key: 'id', label: 'Order ID', sortable: true },
-    { key: 'user_id', label: 'User ID', align: 'right' as const, sortable: true },
+    { key: 'id', label: 'Order ID', sortable: true, thClassName: 'w-[20%]', tdClassName: 'w-[20%]' },
+    { key: 'user_id', label: 'User ID', align: 'right' as const, sortable: true, thClassName: 'w-[12%]', tdClassName: 'w-[12%]' },
     {
       key: 'items',
-      label: 'Items',
+      label: 'Lines',
       align: 'right' as const,
+      thClassName: 'w-[10%]',
+      tdClassName: 'w-[10%]',
       render: (order: Order) => (
-        <span className="text-muted">{order.items?.length || 0} item(s)</span>
+        <span className="text-muted">{order.items?.length || 0}</span>
+      ),
+    },
+    {
+      key: 'quantity',
+      label: 'Quantity',
+      align: 'right' as const,
+      thClassName: 'w-[12%]',
+      tdClassName: 'w-[12%]',
+      render: (order: Order) => (
+        <span className="font-medium">
+          {order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0}
+        </span>
       ),
     },
     {
       key: 'total',
       label: 'Total',
       align: 'right' as const,
+      thClassName: 'w-[14%]',
+      tdClassName: 'w-[14%]',
       render: (order: Order) => <span className="font-medium">${order.total}</span>,
     },
     {
       key: 'status',
       label: 'Status',
+      hideBelow: 'sm' as const,
+      thClassName: 'w-[14%]',
+      tdClassName: 'w-[14%]',
       render: (order: Order) => (
         <span
           className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -174,6 +193,9 @@ export function OrdersPage() {
     {
       key: 'created_at',
       label: 'Created',
+      hideBelow: 'sm' as const,
+      thClassName: 'w-[12%]',
+      tdClassName: 'w-[12%]',
       render: (order: Order) => new Date(order.created_at).toLocaleDateString(),
     },
   ];
@@ -203,153 +225,155 @@ export function OrdersPage() {
         onEdit={openEditModal}
         onDelete={(order) => handleDelete(order.id)}
         searchable={true}
-        searchKeys={['id', 'status']}
+        searchKeys={['id', 'status', 'user_id']}
       />
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">
-              {editingOrder ? 'Edit Order' : 'Create Order'}
-            </h3>
-            
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                {error}
-              </div>
-            )}
-            
-            <form onSubmit={handleSubmit}>
-              {!editingOrder && (
-                <div className="mb-4">
-                <label className="block text-sm font-medium text-onSurface mb-1">Order ID</label>
-                  <input
-                    type="text"
-                    value={formData.id}
-                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    required
-                  />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col min-h-0 mt-6">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold">
+                {editingOrder ? 'Edit Order' : 'Create Order'}
+              </h3>
+              {error && (
+                <div className="mt-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {error}
                 </div>
               )}
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-onSurface mb-1">User</label>
-                <select
-                  value={formData.user_id}
-                  onChange={(e) => setFormData({ ...formData, user_id: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                  required
-                >
-                  <option value={0}>Select a user...</option>
-                  {users?.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} ({user.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-onSurface mb-2">Order Items</label>
-                <div className="border border-gray-300 rounded-lg p-4 mb-2">
-                  <div className="grid grid-cols-4 gap-2 mb-2">
-                    <div className="col-span-2">
-                      <select
-                        value={currentItem.sku}
-                        onChange={(e) => {
-                          const selectedItem = inventory?.find(i => i.sku === e.target.value);
-                          setCurrentItem({
-                            ...currentItem,
-                            sku: e.target.value,
-                            price: selectedItem ? 0 : 0
-                          });
-                        }}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                      >
-                        <option value="">Select SKU...</option>
-                        {inventory?.map((item) => (
-                          <option key={item.id} value={item.sku}>
-                            {item.sku} (Stock: {item.qty})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+            </div>
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
+                {!editingOrder && (
+                  <div>
+                    <label className="block text-sm font-medium text-onSurface mb-1">Order ID</label>
                     <input
-                      type="number"
-                      min="1"
-                      value={currentItem.quantity}
-                      onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) })}
-                      placeholder="Qty"
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      type="text"
+                      value={formData.id}
+                      onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      required
                     />
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={currentItem.price}
-                      onChange={(e) => setCurrentItem({ ...currentItem, price: parseFloat(e.target.value) })}
-                      placeholder="Price"
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    disabled={!currentItem.sku || currentItem.quantity <= 0 || currentItem.price <= 0}
-                    className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm px-3 py-1 rounded transition"
-                  >
-                    Add Item
-                  </button>
-                </div>
-
-                {formData.items.length > 0 && (
-                  <div className="border border-gray-300 rounded-lg p-3">
-                  <div className="text-xs font-medium text-muted mb-2">Added Items:</div>
-                    {formData.items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center text-sm mb-1 bg-surface p-2 rounded">
-                        <span>
-                          {item.sku} × {item.quantity} @ ${typeof item.price === 'string' ? item.price : item.price.toFixed(2)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeItem(index)}
-                          className="text-red-600 hover:text-red-800 text-xs"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 )}
+                
+                <div>
+                  <label className="block text-sm font-medium text-onSurface mb-1">User</label>
+                  <select
+                    value={formData.user_id}
+                    onChange={(e) => setFormData({ ...formData, user_id: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value={0}>Select a user...</option>
+                    {users?.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-onSurface mb-2">Order Items</label>
+                  <div className="border border-gray-300 rounded-lg p-4 mb-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2">
+                      <div className="sm:col-span-2">
+                        <select
+                          value={currentItem.sku}
+                          onChange={(e) => {
+                            const selectedItem = inventory?.find(i => i.sku === e.target.value);
+                            setCurrentItem({
+                              ...currentItem,
+                              sku: e.target.value,
+                              price: selectedItem ? 0 : 0
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                        >
+                          <option value="">Select SKU...</option>
+                          {inventory?.map((item) => (
+                            <option key={item.id} value={item.sku}>
+                              {item.sku} (Stock: {item.qty})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={currentItem.quantity}
+                        onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) })}
+                        placeholder="Qty"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={currentItem.price}
+                        onChange={(e) => setCurrentItem({ ...currentItem, price: parseFloat(e.target.value) })}
+                        placeholder="Price"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addItem}
+                      disabled={!currentItem.sku || currentItem.quantity <= 0 || currentItem.price <= 0}
+                      className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm px-3 py-1 rounded transition"
+                    >
+                      Add Item
+                    </button>
+                  </div>
+
+                  {formData.items.length > 0 && (
+                    <div className="border border-gray-300 rounded-lg p-3 max-h-40 sm:max-h-64 overflow-y-auto">
+                      <div className="text-xs font-medium text-muted mb-2">Added Items:</div>
+                      {formData.items.map((item, index) => (
+                        <div key={index} className="flex justify-between items-center text-sm mb-1 bg-surface p-2 rounded">
+                          <span>
+                            {item.sku} × {item.quantity} @ ${typeof item.price === 'string' ? item.price : item.price.toFixed(2)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            className="text-red-600 hover:text-red-800 text-xs"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-onSurface mb-1">Total</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.total}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-surface"
+                  />
+                  <p className="text-xs text-muted mt-1">Auto-calculated from items</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-onSurface mb-1">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-onSurface mb-1">Total</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.total}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-surface"
-                />
-                <p className="text-xs text-muted mt-1">Auto-calculated from items</p>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-onSurface mb-1">Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-3">
+              <div className="border-t border-gray-200 bg-white p-4 flex justify-end gap-3">
                 <button type="button" onClick={closeModal} className="px-4 py-2 text-onSurface/70 hover:text-onSurface">
                   Cancel
                 </button>

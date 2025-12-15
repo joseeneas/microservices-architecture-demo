@@ -11,7 +11,7 @@ INVENTORY_SERVICE_URL = "http://inventory:8000"
 TIMEOUT = 5.0  # seconds
 
 
-async def get_all_items() -> List[dict]:
+async def get_all_items(token: Optional[str] = None) -> List[dict]:
     """
     Retrieve all inventory items from the Inventory service.
     
@@ -22,15 +22,16 @@ async def get_all_items() -> List[dict]:
         httpx.HTTPError: If there's a network error or the service is unavailable
     """
     try:
+        headers = {"Authorization": f"Bearer {token}"} if token else None
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{INVENTORY_SERVICE_URL}/")
+            response = await client.get(f"{INVENTORY_SERVICE_URL}/", headers=headers)
             response.raise_for_status()
             return response.json()
     except httpx.HTTPError:
         raise
 
 
-async def get_item_by_sku(sku: str) -> Optional[dict]:
+async def get_item_by_sku(sku: str, token: Optional[str] = None) -> Optional[dict]:
     """
     Find an inventory item by SKU.
     
@@ -44,7 +45,7 @@ async def get_item_by_sku(sku: str) -> Optional[dict]:
         httpx.HTTPError: If there's a network error or the service is unavailable
     """
     try:
-        items = await get_all_items()
+        items = await get_all_items(token)
         for item in items:
             if item.get('sku') == sku:
                 return item
@@ -53,7 +54,7 @@ async def get_item_by_sku(sku: str) -> Optional[dict]:
         raise
 
 
-async def validate_items_exist(skus: List[str]) -> tuple[bool, Optional[str]]:
+async def validate_items_exist(skus: List[str], token: Optional[str] = None) -> tuple[bool, Optional[str]]:
     """
     Validate that all provided SKUs exist in inventory.
     
@@ -69,7 +70,7 @@ async def validate_items_exist(skus: List[str]) -> tuple[bool, Optional[str]]:
         httpx.HTTPError: If there's a network error or the service is unavailable
     """
     try:
-        items = await get_all_items()
+        items = await get_all_items(token)
         existing_skus = {item['sku'] for item in items}
         
         for sku in skus:
@@ -81,7 +82,7 @@ async def validate_items_exist(skus: List[str]) -> tuple[bool, Optional[str]]:
         raise
 
 
-async def check_stock_availability(sku: str, required_qty: int) -> tuple[bool, int]:
+async def check_stock_availability(sku: str, required_qty: int, token: Optional[str] = None) -> tuple[bool, int]:
     """
     Check if there's sufficient stock for an order.
     
@@ -96,7 +97,7 @@ async def check_stock_availability(sku: str, required_qty: int) -> tuple[bool, i
         httpx.HTTPError: If there's a network error or the service is unavailable
     """
     try:
-        item = await get_item_by_sku(sku)
+        item = await get_item_by_sku(sku, token)
         if item is None:
             return False, 0
         
@@ -106,7 +107,7 @@ async def check_stock_availability(sku: str, required_qty: int) -> tuple[bool, i
         raise
 
 
-async def reduce_inventory(sku: str, quantity: int) -> tuple[bool, Optional[str]]:
+async def reduce_inventory(sku: str, quantity: int, token: Optional[str] = None) -> tuple[bool, Optional[str]]:
     """
     Reduce inventory quantity for a specific SKU.
     
@@ -122,7 +123,7 @@ async def reduce_inventory(sku: str, quantity: int) -> tuple[bool, Optional[str]
     """
     try:
         # First, get the item to find its ID and current quantity
-        item = await get_item_by_sku(sku)
+        item = await get_item_by_sku(sku, token)
         if item is None:
             return False, f"SKU '{sku}' not found"
         
@@ -135,9 +136,11 @@ async def reduce_inventory(sku: str, quantity: int) -> tuple[bool, Optional[str]
         
         # Update the inventory via PUT endpoint
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            headers = {"Authorization": f"Bearer {token}"} if token else None
             response = await client.put(
                 f"{INVENTORY_SERVICE_URL}/{item_id}",
-                json={"qty": new_qty}
+                json={"qty": new_qty},
+                headers=headers
             )
             
             if response.status_code == 200:
@@ -149,7 +152,7 @@ async def reduce_inventory(sku: str, quantity: int) -> tuple[bool, Optional[str]
         return False, f"Inventory service error: {str(e)}"
 
 
-async def restore_inventory(sku: str, quantity: int) -> tuple[bool, Optional[str]]:
+async def restore_inventory(sku: str, quantity: int, token: Optional[str] = None) -> tuple[bool, Optional[str]]:
     """
     Restore (increase) inventory quantity for a specific SKU.
     Used for compensating transactions or order cancellations.
@@ -166,7 +169,7 @@ async def restore_inventory(sku: str, quantity: int) -> tuple[bool, Optional[str
     """
     try:
         # Get the item to find its ID and current quantity
-        item = await get_item_by_sku(sku)
+        item = await get_item_by_sku(sku, token)
         if item is None:
             return False, f"SKU '{sku}' not found"
         
@@ -176,9 +179,11 @@ async def restore_inventory(sku: str, quantity: int) -> tuple[bool, Optional[str
         
         # Update the inventory via PUT endpoint
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            headers = {"Authorization": f"Bearer {token}"} if token else None
             response = await client.put(
                 f"{INVENTORY_SERVICE_URL}/{item_id}",
-                json={"qty": new_qty}
+                json={"qty": new_qty},
+                headers=headers
             )
             
             if response.status_code == 200:

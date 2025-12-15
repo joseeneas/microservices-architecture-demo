@@ -40,7 +40,7 @@ def get_orders(db: Session, skip: int = 0, limit: int = 100) -> List[models.Orde
     """
     return db.query(models.Order).offset(skip).limit(limit).all()
 
-async def process_inventory_for_order(items: List, deduct: bool = True) -> Tuple[bool, Optional[str], List[str]]:
+async def process_inventory_for_order(items: List, deduct: bool = True, token: Optional[str] = None) -> Tuple[bool, Optional[str], List[str]]:
     """
     Process inventory deductions or restorations for order items.
     
@@ -61,7 +61,7 @@ async def process_inventory_for_order(items: List, deduct: bool = True) -> Tuple
             quantity = item.quantity if hasattr(item, 'quantity') else item['quantity']
             
             if deduct:
-                success, error_msg = await inventory_client.reduce_inventory(sku, quantity)
+                success, error_msg = await inventory_client.reduce_inventory(sku, quantity, token)
                 if success:
                     logger.info(f"Deducted {quantity} units of SKU '{sku}'")
                     processed_skus.append(sku)
@@ -70,10 +70,10 @@ async def process_inventory_for_order(items: List, deduct: bool = True) -> Tuple
                     logger.error(f"Failed to deduct inventory for SKU '{sku}': {error_msg}")
                     if processed_skus:
                         logger.info(f"Rolling back inventory deductions for {len(processed_skus)} items")
-                        await rollback_inventory_deductions(items, processed_skus)
+                        await rollback_inventory_deductions(items, processed_skus, token)
                     return False, f"Inventory {action} failed: {error_msg}", []
             else:
-                success, error_msg = await inventory_client.restore_inventory(sku, quantity)
+                success, error_msg = await inventory_client.restore_inventory(sku, quantity, token)
                 if success:
                     logger.info(f"Restored {quantity} units of SKU '{sku}'")
                     processed_skus.append(sku)
@@ -86,11 +86,11 @@ async def process_inventory_for_order(items: List, deduct: bool = True) -> Tuple
     except Exception as e:
         logger.error(f"Unexpected error during inventory {action}: {str(e)}")
         if deduct and processed_skus:
-            await rollback_inventory_deductions(items, processed_skus)
+            await rollback_inventory_deductions(items, processed_skus, token)
         return False, f"Inventory {action} error: {str(e)}", []
 
 
-async def rollback_inventory_deductions(items: List, processed_skus: List[str]) -> None:
+async def rollback_inventory_deductions(items: List, processed_skus: List[str], token: Optional[str] = None) -> None:
     """
     Rollback inventory deductions for items that were successfully processed.
     
@@ -102,14 +102,14 @@ async def rollback_inventory_deductions(items: List, processed_skus: List[str]) 
         sku = item.sku if hasattr(item, 'sku') else item['sku']
         if sku in processed_skus:
             quantity = item.quantity if hasattr(item, 'quantity') else item['quantity']
-            success, error_msg = await inventory_client.restore_inventory(sku, quantity)
+            success, error_msg = await inventory_client.restore_inventory(sku, quantity, token)
             if success:
                 logger.info(f"Rollback: Restored {quantity} units of SKU '{sku}'")
             else:
                 logger.error(f"Rollback failed for SKU '{sku}': {error_msg}")
 
 
-async def validate_order_data(order: schemas.OrderCreate) -> Tuple[bool, Optional[str]]:
+async def validate_order_data(order: schemas.OrderCreate, token: Optional[str] = None) -> Tuple[bool, Optional[str]]:
     """
     Validate order data by checking user and inventory items exist.
     
@@ -121,21 +121,21 @@ async def validate_order_data(order: schemas.OrderCreate) -> Tuple[bool, Optiona
     """
     try:
         # Validate user exists
-        user_exists = await users_client.validate_user_exists(order.user_id)
+        user_exists = await users_client.validate_user_exists(order.user_id, token)
         if not user_exists:
             return False, f"User with ID {order.user_id} does not exist"
         
         # Validate inventory items if provided
         if order.items:
             skus = [item.sku for item in order.items]
-            all_exist, missing_sku = await inventory_client.validate_items_exist(skus)
+            all_exist, missing_sku = await inventory_client.validate_items_exist(skus, token)
             if not all_exist:
                 return False, f"Inventory item with SKU '{missing_sku}' does not exist"
             
             # Optionally check stock availability
             for item in order.items:
                 available, current_stock = await inventory_client.check_stock_availability(
-                    item.sku, item.quantity
+                    item.sku, item.quantity, token
                 )
                 if not available:
                     return False, f"Insufficient stock for SKU '{item.sku}'. Available: {current_stock}, Required: {item.quantity}"

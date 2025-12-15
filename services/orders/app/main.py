@@ -150,7 +150,7 @@ async def create_order(
         )
     
     # Validate order data with other services
-    is_valid, error_message = await crud.validate_order_data(order)
+    is_valid, error_message = await crud.validate_order_data(order, token=current_user.token)
     if not is_valid:
         # Check if it's a service communication error
         if "Service communication error" in error_message:
@@ -163,7 +163,7 @@ async def create_order(
     
     # Process inventory deductions (only if order has items and status is active)
     if order.items and order.status != "cancelled":
-        success, error_msg, _ = await crud.process_inventory_for_order(order.items, deduct=True)
+        success, error_msg, _ = await crud.process_inventory_for_order(order.items, deduct=True, token=current_user.token)
         if not success:
             raise HTTPException(status_code=400, detail=error_msg)
     
@@ -222,7 +222,8 @@ async def update_order(
             if existing_order.items:
                 success, error_msg, _ = await crud.process_inventory_for_order(
                     existing_order.items, 
-                    deduct=False
+                    deduct=False,
+                    token=current_user.token
                 )
                 if not success:
                     raise HTTPException(status_code=400, detail=f"Failed to restore inventory: {error_msg}")
@@ -232,7 +233,8 @@ async def update_order(
             if existing_order.items:
                 success, error_msg, _ = await crud.process_inventory_for_order(
                     existing_order.items,
-                    deduct=True
+                    deduct=True,
+                    token=current_user.token
                 )
                 if not success:
                     raise HTTPException(status_code=400, detail=f"Failed to deduct inventory: {error_msg}")

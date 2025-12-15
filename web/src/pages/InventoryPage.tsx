@@ -72,11 +72,13 @@ export function InventoryPage() {
   };
 
   const columns = [
-    { key: 'id', label: 'ID', align: 'right' as const, sortable: true },
+    { key: 'id', label: 'ID', align: 'right' as const, sortable: true, hideBelow: 'md' as const },
     {
       key: 'sku',
       label: 'SKU',
       sortable: true,
+      thClassName: 'w-[50%]',
+      tdClassName: 'w-[50%]',
       render: (item: InventoryItem) => (
         <span className="font-mono font-medium">{item.sku}</span>
       ),
@@ -85,6 +87,8 @@ export function InventoryPage() {
       key: 'qty',
       label: 'Quantity',
       align: 'right' as const,
+      thClassName: 'w-[15%]',
+      tdClassName: 'w-[15%]',
       render: (item: InventoryItem) => (
         <span
           className={`font-medium ${
@@ -102,6 +106,7 @@ export function InventoryPage() {
     {
       key: 'created_at',
       label: 'Created',
+      hideBelow: 'sm' as const,
       render: (item: InventoryItem) => new Date(item.created_at).toLocaleDateString(),
     },
   ];
