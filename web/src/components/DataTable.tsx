@@ -116,11 +116,11 @@ export function DataTable<T extends Record<string, any>>({
         ) : <span />}
         <div className="flex items-center gap-4 text-sm text-muted">
           <span>
-            {totalItems === 0 ? '0 items' : `Showing ${startItem}-${endItem} of ${totalItems}`}
+            {totalItems === 0 ? '0 items' : `Showing ${startItem}-${endItem} of ${totalItems} items `}
           </span>
           {pagination && (
             <label className="flex items-center gap-2">
-              <span>Rows per page</span>
+              <span>--Rows per page</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(parseInt(e.target.value)); setPage(1); }}
@@ -178,7 +178,7 @@ export function DataTable<T extends Record<string, any>>({
                 paginatedData.map((item, index) => (
                   <tr key={index} className="transition-colors">
                     {columns.map((column) => (
-                      <td key={column.key} className={`px-6 py-4 whitespace-normal break-words text-sm text-onSurface ${
+                      <td key={column.key} className={`px-6 py-4 whitespace-normal wrap-break-words text-sm text-onSurface ${
                         column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
                       } ${column.hideBelow ? `hidden ${column.hideBelow}:table-cell` : ''} ${column.tdClassName || ''}`}>
                         {column.render ? column.render(item) : item[column.key]}
