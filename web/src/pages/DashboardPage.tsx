@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
+import { DataTable } from '../components/DataTable';
 
 interface UserAnalytics {
   total_users: number;
@@ -168,89 +169,81 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders */}
+        {/* Recent Orders (Table) */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-bold text-onSurface mb-4">Recent Orders</h3>
-          {orderAnalytics?.recent_orders && orderAnalytics.recent_orders.length > 0 ? (
-            <div className="space-y-3">
-              {orderAnalytics.recent_orders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between p-3 bg-surface rounded">
-                  <div>
-                    <p className="font-medium text-onSurface">{order.id}</p>
-                    <p className="text-sm text-muted">
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-onSurface">${order.total}</p>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        order.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : order.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {order.status}
+          {orderAnalytics?.recent_orders?.length ? (
+            <DataTable
+              data={orderAnalytics.recent_orders}
+              columns={[
+                { key: 'id', label: 'Order ID', sortable: true, thClassName: 'w-[28%]' },
+                { key: 'user_id', label: 'User ID', align: 'right', sortable: true, thClassName: 'w-[12%]' },
+                {
+                  key: 'total', label: 'Total', align: 'right', thClassName: 'w-[18%]',
+                  render: (row: any) => <span className="font-medium">${row.total}</span>,
+                },
+                {
+                  key: 'status', label: 'Status', thClassName: 'w-[18%]',
+                  render: (row: any) => (
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      row.status === 'completed' ? 'bg-green-100 text-green-800'
+                      : row.status === 'pending' ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-red-100 text-red-800'
+                    }`}>
+                      {row.status}
                     </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  )
+                },
+                {
+                  key: 'created_at', label: 'Created', align: 'right', thClassName: 'w-[24%]',
+                  render: (row: any) => new Date(row.created_at).toLocaleString(),
+                }
+              ]}
+              pagination={false}
+              searchable={true}
+              searchKeys={['id', 'status', 'user_id']}
+              defaultPageSize={5}
+            />
           ) : (
             <p className="text-muted text-center py-4">No recent orders</p>
           )}
         </div>
 
-        {/* Low Stock Alerts */}
+        {/* Low Stock (Table) */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-bold text-onSurface mb-4">Low Stock Alerts</h3>
-          {inventoryAnalytics?.low_stock_items && inventoryAnalytics.low_stock_items.length > 0 ? (
-            <div className="space-y-3">
-              {inventoryAnalytics.low_stock_items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-surface rounded">
-                  <div>
-                    <p className="font-medium font-mono text-onSurface">{item.sku}</p>
-                    <p className="text-sm text-muted">SKU</p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-bold ${
-                        item.qty === 0
-                          ? 'text-red-600'
-                          : item.qty < 10
-                          ? 'text-orange-600'
-                          : 'text-yellow-600'
-                      }`}
-                    >
-                      {item.qty} units
-                    </p>
-                    <p className="text-xs text-muted">
-                      {item.qty === 0 ? 'Out of stock' : 'Low stock'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {inventoryAnalytics?.low_stock_items?.length ? (
+            <DataTable
+              data={inventoryAnalytics.low_stock_items}
+              columns={[
+                { key: 'sku', label: 'SKU', thClassName: 'w-[40%]', render: (row: any) => <span className="font-mono">{row.sku}</span> },
+                { key: 'qty', label: 'Quantity', align: 'right', thClassName: 'w-[20%]' },
+                { key: 'id', label: 'ID', align: 'right', thClassName: 'w-[20%]' }
+              ]}
+              pagination={false}
+              searchable={true}
+              searchKeys={['sku']}
+              defaultPageSize={5}
+            />
           ) : (
             <p className="text-muted text-center py-4">No low stock items</p>
           )}
         </div>
       </div>
 
-      {/* Status Breakdown */}
+      {/* Status Breakdown (Table) */}
       {user?.role === 'admin' && orderAnalytics?.status_breakdown && (
         <div className="bg-white rounded-lg shadow p-6 mt-6">
           <h3 className="text-lg font-bold text-onSurface mb-4">Order Status Breakdown</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {Object.entries(orderAnalytics.status_breakdown).map(([status, count]) => (
-              <div key={status} className="text-center p-4 bg-surface rounded">
-                <p className="text-2xl font-bold text-onSurface">{count}</p>
-                <p className="text-sm text-muted capitalize mt-1">{status}</p>
-              </div>
-            ))}
-          </div>
+          <DataTable
+            data={Object.entries(orderAnalytics.status_breakdown).map(([status, count]) => ({ status, count }))}
+            columns={[
+              { key: 'status', label: 'Status' },
+              { key: 'count', label: 'Count', align: 'right' },
+            ]}
+            pagination={false}
+            searchable={false}
+          />
         </div>
       )}
     </div>

@@ -217,6 +217,38 @@ def reset_password(
     db.commit()
     return {"temp_password": temp_pw}
 
+@app.get("/analytics")
+def get_analytics(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Get user analytics (authenticated users).
+    
+    Returns:
+        dict: Analytics data including user counts, role breakdown, recent signups
+    """
+    total_users = db.query(func.count(models.User.id)).scalar()
+    active_users = db.query(func.count(models.User.id)).filter(models.User.is_active == True).scalar()
+    
+    # Role breakdown
+    role_counts = db.query(models.User.role, func.count(models.User.id)).group_by(models.User.role).all()
+    role_breakdown = {role: count for role, count in role_counts}
+    
+    # Recent signups (last 7 days)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_signups = db.query(func.count(models.User.id)).filter(
+        models.User.created_at >= seven_days_ago
+    ).scalar()
+    
+    return {
+        "total_users": total_users,
+        "active_users": active_users,
+        "inactive_users": total_users - active_users,
+        "role_breakdown": role_breakdown,
+        "recent_signups_7d": recent_signups
+    }
+
 @app.get("/", response_model=List[schemas.User])
 def list_users(
     skip: int = 0,
@@ -453,37 +485,4 @@ def import_users_csv(
         "updated_count": updated_count,
         "skipped_count": skipped_count,
         "errors": errors[:10]  # Return first 10 errors to avoid huge responses
-    }
-
-
-@app.get("/analytics")
-def get_analytics(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
-):
-    """
-    Get user analytics (authenticated users).
-    
-    Returns:
-        dict: Analytics data including user counts, role breakdown, recent signups
-    """
-    total_users = db.query(func.count(models.User.id)).scalar()
-    active_users = db.query(func.count(models.User.id)).filter(models.User.is_active == True).scalar()
-    
-    # Role breakdown
-    role_counts = db.query(models.User.role, func.count(models.User.id)).group_by(models.User.role).all()
-    role_breakdown = {role: count for role, count in role_counts}
-    
-    # Recent signups (last 7 days)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    recent_signups = db.query(func.count(models.User.id)).filter(
-        models.User.created_at >= seven_days_ago
-    ).scalar()
-    
-    return {
-        "total_users": total_users,
-        "active_users": active_users,
-        "inactive_users": total_users - active_users,
-        "role_breakdown": role_breakdown,
-        "recent_signups_7d": recent_signups
     }

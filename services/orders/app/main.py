@@ -116,6 +116,61 @@ def list_orders(
         orders = [order for order in orders if order.user_id == current_user.id]
     return orders
 
+@app.get("/analytics")
+def get_analytics(
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.get_current_user)
+):
+    """
+    Get order analytics (authenticated users see their own, admins see all).
+    
+    Returns:
+        dict: Analytics data including order counts, revenue, status breakdown, recent orders
+    """
+    # Base query
+    query = db.query(models.Order)
+    
+    # Filter by user_id unless admin
+    if current_user.role != "admin":
+        query = query.filter(models.Order.user_id == current_user.id)
+    
+    total_orders = query.count()
+    
+    # Total revenue (sum of all orders)
+    total_revenue = query.with_entities(func.sum(models.Order.total)).scalar() or Decimal(0)
+    
+    # Orders by status
+    status_counts = query.with_entities(
+        models.Order.status, 
+        func.count(models.Order.id)
+    ).group_by(models.Order.status).all()
+    status_breakdown = {status: count for status, count in status_counts}
+    
+    # Recent orders (last 7 days)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_orders_count = query.filter(models.Order.created_at >= seven_days_ago).count()
+    
+    # Get 5 most recent orders for display
+    recent_orders = query.order_by(models.Order.created_at.desc()).limit(5).all()
+    recent_orders_list = [
+        {
+            "id": order.id,
+            "user_id": order.user_id,
+            "total": str(order.total),
+            "status": order.status,
+            "created_at": order.created_at.isoformat()
+        }
+        for order in recent_orders
+    ]
+    
+    return {
+        "total_orders": total_orders,
+        "total_revenue": str(total_revenue),
+        "status_breakdown": status_breakdown,
+        "recent_orders_7d": recent_orders_count,
+        "recent_orders": recent_orders_list
+    }
+
 @app.get("/{order_id}", response_model=schemas.Order)
 def get_order(
     order_id: str,
@@ -547,60 +602,6 @@ async def import_orders_csv(
     }
 
 
-@app.get("/analytics")
-def get_analytics(
-    db: Session = Depends(get_db),
-    current_user: auth.CurrentUser = Depends(auth.get_current_user)
-):
-    """
-    Get order analytics (authenticated users see their own, admins see all).
-    
-    Returns:
-        dict: Analytics data including order counts, revenue, status breakdown, recent orders
-    """
-    # Base query
-    query = db.query(models.Order)
-    
-    # Filter by user_id unless admin
-    if current_user.role != "admin":
-        query = query.filter(models.Order.user_id == current_user.id)
-    
-    total_orders = query.count()
-    
-    # Total revenue (sum of all orders)
-    total_revenue = query.with_entities(func.sum(models.Order.total)).scalar() or Decimal(0)
-    
-    # Orders by status
-    status_counts = query.with_entities(
-        models.Order.status, 
-        func.count(models.Order.id)
-    ).group_by(models.Order.status).all()
-    status_breakdown = {status: count for status, count in status_counts}
-    
-    # Recent orders (last 7 days)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    recent_orders_count = query.filter(models.Order.created_at >= seven_days_ago).count()
-    
-    # Get 5 most recent orders for display
-    recent_orders = query.order_by(models.Order.created_at.desc()).limit(5).all()
-    recent_orders_list = [
-        {
-            "id": order.id,
-            "user_id": order.user_id,
-            "total": str(order.total),
-            "status": order.status,
-            "created_at": order.created_at.isoformat()
-        }
-        for order in recent_orders
-    ]
-    
-    return {
-        "total_orders": total_orders,
-        "total_revenue": str(total_revenue),
-        "status_breakdown": status_breakdown,
-        "recent_orders_7d": recent_orders_count,
-        "recent_orders": recent_orders_list
-    }
 
 
 @app.get("/{order_id}/timeline", response_model=List[schemas.OrderEvent])
