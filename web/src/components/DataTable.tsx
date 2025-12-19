@@ -210,7 +210,6 @@ export function DataTable<T extends Record<string, any>>({
             </tbody>
           </table>
         </div>
-
         {/* Pagination controls */}
         {pagination && totalItems > 0 && (
           <div className="flex items-center justify-between px-4 py-3 bg-surface text-sm">
