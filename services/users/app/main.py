@@ -14,8 +14,13 @@ Attributes:
     app (FastAPI): The FastAPI application instance configured with the title "users-service".
 """
 from typing import List
-from fastapi import FastAPI, Depends, HTTPException, status
+import csv
+import io
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from datetime import datetime, timedelta
 
 from . import crud, models, schemas, auth
 from .database import engine, get_db
@@ -317,3 +322,168 @@ def delete_user(
     success = crud.delete_user(db, user_id=user_id)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
+
+
+@app.get("/export/csv")
+def export_users_csv(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin)
+):
+    """
+    Export all users to CSV (admin only).
+    
+    Returns:
+        CSV file with columns: id, name, email, role, is_active, created_at
+    """
+    users = crud.get_users(db, skip=0, limit=10000)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['id', 'name', 'email', 'role', 'is_active', 'created_at'])
+    
+    # Write data
+    for user in users:
+        writer.writerow([
+            user.id,
+            user.name,
+            user.email,
+            user.role,
+            user.is_active,
+            user.created_at.isoformat()
+        ])
+    
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=users.csv"}
+    )
+
+
+@app.post("/import/csv")
+def import_users_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin)
+):
+    """
+    Import users from CSV with upsert logic (admin only).
+    
+    Expected CSV columns: name, email, role (optional), is_active (optional)
+    - Updates existing users (matched by email)
+    - Creates new users with default password 'password123'
+    - Returns summary of created/updated/skipped rows
+    
+    Args:
+        file: CSV file upload
+        db: Database session (injected)
+        current_user: Current authenticated admin user (injected)
+    
+    Returns:
+        dict: Summary with created_count, updated_count, skipped_count, and errors list
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    content = file.file.read().decode('utf-8')
+    reader = csv.DictReader(io.StringIO(content))
+    
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    errors = []
+    
+    for row_num, row in enumerate(reader, start=2):  # start=2 because row 1 is header
+        try:
+            name = row.get('name', '').strip()
+            email = row.get('email', '').strip()
+            role = row.get('role', '').strip()
+            is_active_str = row.get('is_active', 'true').strip().lower()
+            
+            if not name or not email:
+                errors.append(f"Row {row_num}: Missing name or email")
+                skipped_count += 1
+                continue
+            
+            # Parse is_active
+            is_active = is_active_str in ('true', '1', 'yes', 'active')
+            
+            # Validate role
+            if role and role not in ('admin', 'user'):
+                role = 'user'
+            elif not role:
+                role = 'user'
+            
+            # Check if user exists (upsert logic)
+            existing_user = crud.get_user_by_email(db, email=email)
+            
+            if existing_user:
+                # Update existing user
+                existing_user.name = name
+                existing_user.role = role
+                existing_user.is_active = is_active
+                updated_count += 1
+            else:
+                # Create new user with default password
+                password_hash = auth.get_password_hash('password123')
+                db_user = models.User(
+                    name=name,
+                    email=email,
+                    password_hash=password_hash,
+                    role=role,
+                    is_active=is_active
+                )
+                db.add(db_user)
+                created_count += 1
+            
+        except Exception as e:
+            errors.append(f"Row {row_num}: {str(e)}")
+            skipped_count += 1
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
+    return {
+        "created_count": created_count,
+        "updated_count": updated_count,
+        "skipped_count": skipped_count,
+        "errors": errors[:10]  # Return first 10 errors to avoid huge responses
+    }
+
+
+@app.get("/analytics")
+def get_analytics(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Get user analytics (authenticated users).
+    
+    Returns:
+        dict: Analytics data including user counts, role breakdown, recent signups
+    """
+    total_users = db.query(func.count(models.User.id)).scalar()
+    active_users = db.query(func.count(models.User.id)).filter(models.User.is_active == True).scalar()
+    
+    # Role breakdown
+    role_counts = db.query(models.User.role, func.count(models.User.id)).group_by(models.User.role).all()
+    role_breakdown = {role: count for role, count in role_counts}
+    
+    # Recent signups (last 7 days)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_signups = db.query(func.count(models.User.id)).filter(
+        models.User.created_at >= seven_days_ago
+    ).scalar()
+    
+    return {
+        "total_users": total_users,
+        "active_users": active_users,
+        "inactive_users": total_users - active_users,
+        "role_breakdown": role_breakdown,
+        "recent_signups_7d": recent_signups
+    }

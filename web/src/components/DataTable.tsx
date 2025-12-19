@@ -11,11 +11,18 @@ interface Column<T> {
   hideBelow?: 'sm' | 'md' | 'lg'; // hides column below breakpoint
 }
 
+interface CustomAction<T> {
+  label: string;
+  onClick: (item: T) => void;
+  className?: string;
+}
+
 interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
+  customActions?: CustomAction<T>[];
   searchable?: boolean;
   searchKeys?: string[];
   tableName?: string;
@@ -29,6 +36,7 @@ export function DataTable<T extends Record<string, any>>({
   columns,
   onEdit,
   onDelete,
+  customActions = [],
   searchable = true,
   searchKeys = [],
   pagination = true,
@@ -157,7 +165,7 @@ export function DataTable<T extends Record<string, any>>({
                     </div>
                   </th>
                 ))}
-                {(onEdit || onDelete) && (
+                {(onEdit || onDelete || customActions.length > 0) && (
                   <th className="px-6 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider w-[120px]">
                     Actions
                   </th>
@@ -168,7 +176,7 @@ export function DataTable<T extends Record<string, any>>({
               {paginatedData.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
+                    colSpan={columns.length + (onEdit || onDelete || customActions.length > 0 ? 1 : 0)}
                     className="px-6 py-8 text-center text-muted"
                   >
                     No data found
@@ -184,8 +192,17 @@ export function DataTable<T extends Record<string, any>>({
                         {column.render ? column.render(item) : item[column.key]}
                       </td>
                     ))}
-                    {(onEdit || onDelete) && (
+                    {(onEdit || onDelete || customActions.length > 0) && (
                       <td className="px-6 py-4 whitespace-normal text-right text-sm font-medium space-x-2 w-[120px]">
+                        {customActions.map((action, actionIdx) => (
+                          <button
+                            key={actionIdx}
+                            onClick={() => action.onClick(item)}
+                            className={action.className || 'text-gray-600 hover:text-gray-800 font-medium'}
+                          >
+                            {action.label}
+                          </button>
+                        ))}
                         {onEdit && (
                           <button
                             onClick={() => onEdit(item)}

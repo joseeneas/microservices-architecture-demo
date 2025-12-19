@@ -9,6 +9,7 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const { user, logout } = useAuth();
 
   const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: '📈' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'orders', label: 'Orders', icon: '📦' },
     { id: 'inventory', label: 'Inventory', icon: '📊' },

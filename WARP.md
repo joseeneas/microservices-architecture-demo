@@ -206,6 +206,62 @@ docker exec microservices-architecture-demo-inventory-db-1 psql -U inventory -d 
 docker exec microservices-architecture-demo-users-db-1 psql -U users -d usersdb -c "UPDATE users SET role = 'admin' WHERE email = 'admin@test.com';"
 ```
 
+## Performance Improvements
+
+### Frontend Optimizations
+- **Lazy Loading**: Routes and heavy components are lazy-loaded with React.lazy() and Suspense
+- **React Query Caching**: Configured with 5-minute stale time, 10-minute garbage collection time
+- **Code Splitting**: Automatic code splitting for each lazy-loaded route
+
+### Backend Optimizations
+- **Redis Caching**: Redis 7 instance for caching frequently accessed data
+  - Users service: DB 0 (redis://redis:6379/0)
+  - Orders service: DB 1 (redis://redis:6379/1)
+  - Inventory service: DB 2 (redis://redis:6379/2)
+- **Database Indexes**: Indexes on frequently queried columns (see scripts/add_indexes.sql)
+  - Users: email, role, is_active, created_at
+  - Orders: user_id, status, created_at (composite indexes for common patterns)
+  - Inventory: sku, qty, created_at
+  - Order Events: order_id, created_at, event_type
+
+### How to Apply Database Indexes
+```bash
+# Run index creation script
+docker exec -i microservices-architecture-demo-users-db-1 psql -U users < scripts/add_indexes.sql
+```
+
+## Backend Improvements
+
+### Enhanced Validation
+- **Order Items Validation** (services/orders/app/validators.py):
+  - Maximum 100 items per order
+  - No duplicate SKUs
+  - Quantity limits (1-10,000)
+  - Price limits (0-1,000,000)
+  - Order total verification
+- **Status Transition Validation**:
+  - Enforces valid status transitions:
+    - pending → processing or cancelled
+    - processing → shipped or cancelled
+    - shipped → delivered or cancelled
+    - cancelled → pending (reactivation)
+
+### Webhook System
+- **Event Notifications** (services/orders/app/webhooks.py):
+  - Sends HTTP POST webhooks for order events
+  - Events: order.created, order.status_changed, order.updated, order.deleted
+  - Configure via WEBHOOK_URLS environment variable (comma-separated)
+  - Example: `WEBHOOK_URLS=https://example.com/webhook1,https://example.com/webhook2`
+  - Async delivery with 5-second timeout
+
+### Cache Module
+- **Redis Caching Utilities** (services/users/app/cache.py):
+  - get_cache(key) - Retrieve from cache
+  - set_cache(key, value, ttl) - Store with TTL
+  - delete_cache(key) - Invalidate single key
+  - delete_pattern(pattern) - Invalidate multiple keys
+  - @cache_result decorator - Auto-cache function results
+
 ## Tips for agents working in this repo
 
 - When adding a new service, mirror the existing pattern:

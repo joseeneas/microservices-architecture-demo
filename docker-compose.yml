@@ -48,8 +48,11 @@ services:
     depends_on:
       users-db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://users:users123@users-db:5432/usersdb
+      REDIS_URL: redis://redis:6379/0
     networks:
       - msnet
 
@@ -87,8 +90,11 @@ services:
     depends_on:
       orders-db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://orders:orders123@orders-db:5432/ordersdb
+      REDIS_URL: redis://redis:6379/1
     networks:
       - msnet
 
@@ -131,10 +137,28 @@ services:
     depends_on:
       inventory-db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://inventory:inventory123@inventory-db:5432/inventorydb
+      REDIS_URL: redis://redis:6379/2
     networks:
       - msnet
+
+  # Redis Cache
+  # Redis instance for caching and session management
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - msnet
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   # Web Application
   # React-based frontend for interacting with microservices
@@ -145,11 +169,12 @@ services:
 
 # Docker Compose Volume Configuration
 # 
-# Persistent storage volumes for PostgreSQL databases
+# Persistent storage volumes for PostgreSQL databases and Redis cache
 volumes:
   users-db-data:
   orders-db-data:
   inventory-db-data:
+  redis-data:
 
 # Docker Compose Network Configuration
 # 

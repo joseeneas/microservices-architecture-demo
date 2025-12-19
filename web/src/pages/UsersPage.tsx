@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../services/usersApi';
 import { DataTable } from '../components/DataTable';
@@ -9,6 +9,8 @@ export function UsersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<{ name: string; email: string; password?: string }>({ name: '', email: '', password: '' });
+  const [importResult, setImportResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
@@ -72,6 +74,66 @@ export function UsersPage() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/users/export/csv', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'users.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Export failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/users/import/csv', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.detail || 'Import failed');
+      }
+
+      setImportResult(`✓ Created: ${result.created_count}, Updated: ${result.updated_count}, Skipped: ${result.skipped_count}`);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      
+      if (result.errors && result.errors.length > 0) {
+        console.warn('Import errors:', result.errors);
+      }
+    } catch (error) {
+      setImportResult('✗ ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
@@ -104,17 +166,45 @@ export function UsersPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-3xl font-bold text-onSurface">Users</h2>
-          <p className="text-muted mt-1">Manage user accounts and permissions</p>
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className="text-3xl font-bold text-onSurface">Users</h2>
+            <p className="text-muted mt-1">Manage user accounts and permissions</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm text-sm"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm text-sm"
+            >
+              Import CSV
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleImport}
+              className="hidden"
+            />
+            <button
+              onClick={openCreateModal}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-medium shadow-sm"
+            >
+              + Add User
+            </button>
+          </div>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-medium shadow-sm"
-        >
-          + Add User
-        </button>
+        {importResult && (
+          <div className={`mt-2 p-2 text-sm rounded ${importResult.startsWith('✓') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {importResult}
+          </div>
+        )}
       </div>
 
       <DataTable

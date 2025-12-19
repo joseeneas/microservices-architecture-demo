@@ -1,21 +1,52 @@
-import { useState } from 'react';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PreferencesProvider } from './context/PreferencesContext';
 import { LoginPage } from './pages/LoginPage';
 import { Layout } from './components/Layout';
-import { UsersPage } from './pages/UsersPage';
-import { OrdersPage } from './pages/OrdersPage';
-import { InventoryPage } from './pages/InventoryPage';
-import { SettingsPage } from './pages/SettingsPage';
 
-const queryClient = new QueryClient();
+// Lazy load heavy components
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const UsersPage = lazy(() => import('./pages/UsersPage').then(m => ({ default: m.UsersPage })));
+const OrdersPage = lazy(() => import('./pages/OrdersPage').then(m => ({ default: m.OrdersPage })));
+const InventoryPage = lazy(() => import('./pages/InventoryPage').then(m => ({ default: m.InventoryPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const OrderTimelinePage = lazy(() => import('./pages/OrderTimelinePage'));
 
-type Tab = 'users' | 'orders' | 'inventory' | 'settings';
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes (was cacheTime)
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+type Tab = 'dashboard' | 'users' | 'orders' | 'inventory' | 'settings';
 
 function Dashboard() {
   const { isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('users');
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Determine active tab from current route
+  const getActiveTab = (): Tab => {
+    const path = location.pathname;
+    if (path.startsWith('/users')) return 'users';
+    if (path.startsWith('/orders')) return 'orders';
+    if (path.startsWith('/inventory')) return 'inventory';
+    if (path.startsWith('/settings')) return 'settings';
+    return 'dashboard';
+  };
+  
+  const activeTab = getActiveTab();
+  
+  const handleTabChange = (tab: Tab) => {
+    navigate(`/${tab}`);
+  };
 
   if (isLoading) {
     return (
@@ -29,11 +60,22 @@ function Dashboard() {
     <QueryClientProvider client={queryClient}>
       <PreferencesProvider>
         <div className="min-h-screen bg-surface">
-          <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-            {activeTab === 'users' && <UsersPage />}
-            {activeTab === 'orders' && <OrdersPage />}
-            {activeTab === 'inventory' && <InventoryPage />}
-            {activeTab === 'settings' && <SettingsPage />}
+          <Layout activeTab={activeTab} onTabChange={handleTabChange}>
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-64">
+                <div className="text-gray-600">Loading...</div>
+              </div>
+            }>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/users" element={<UsersPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/orders/:orderId/timeline" element={<OrderTimelinePage />} />
+                <Route path="/inventory" element={<InventoryPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Routes>
+            </Suspense>
           </Layout>
         </div>
       </PreferencesProvider>
@@ -43,11 +85,13 @@ function Dashboard() {
 
 function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthenticatedApp />
-      </QueryClientProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthenticatedApp />
+        </QueryClientProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

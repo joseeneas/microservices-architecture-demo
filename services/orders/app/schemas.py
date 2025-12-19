@@ -58,3 +58,30 @@ class Order(OrderBase):
     
     class Config:
         from_attributes = True
+
+
+class OrderEvent(BaseModel):
+    """
+    Schema for order timeline events.
+    
+    Attributes:
+        id (int): Event ID
+        order_id (str): Order identifier
+        event_type (str): Type of event (created, status_changed, updated)
+        description (str): Human-readable event description
+        old_value (str): Previous value (optional)
+        new_value (str): New value (optional)
+        user_id (int): User who triggered the event (optional)
+        created_at (datetime): When the event occurred
+    """
+    id: int
+    order_id: str
+    event_type: str
+    description: str
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    user_id: Optional[int] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True

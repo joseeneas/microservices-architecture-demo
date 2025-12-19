@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ordersApi } from '../services/ordersApi';
 import { usersApi } from '../services/usersApi';
@@ -7,6 +8,7 @@ import { DataTable } from '../components/DataTable';
 import type { Order, OrderCreate, OrderItem } from '../types';
 
 export function OrdersPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -19,6 +21,8 @@ export function OrdersPage() {
   });
   const [currentItem, setCurrentItem] = useState({ sku: '', quantity: 1, price: 0 });
   const [error, setError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders'],
@@ -135,6 +139,68 @@ export function OrdersPage() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/orders/export/csv', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'orders.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Export failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/orders/import/csv', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.detail || 'Import failed');
+      }
+
+      const inventoryMsg = result.inventory_created_count > 0 ? `, Inventory auto-created: ${result.inventory_created_count}` : '';
+      setImportResult(`✓ Created: ${result.created_count}, Updated: ${result.updated_count}, Skipped: ${result.skipped_count}${inventoryMsg}`);
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      
+      if (result.errors && result.errors.length > 0) {
+        console.warn('Import errors:', result.errors);
+      }
+    } catch (error) {
+      setImportResult('✗ ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const columns = [
     { key: 'id', label: 'Order ID', sortable: true, thClassName: 'w-[20%]', tdClassName: 'w-[20%]' },
     { key: 'user_id', label: 'User ID', align: 'right' as const, sortable: true, thClassName: 'w-[12%]', tdClassName: 'w-[12%]' },
@@ -206,17 +272,45 @@ export function OrdersPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-3xl font-bold text-onSurface">Orders</h2>
-          <p className="text-muted mt-1">Manage customer orders and track status</p>
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className="text-3xl font-bold text-onSurface">Orders</h2>
+            <p className="text-muted mt-1">Manage customer orders and track status</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm text-sm"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm text-sm"
+            >
+              Import CSV
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleImport}
+              className="hidden"
+            />
+            <button
+              onClick={openCreateModal}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition font-medium shadow-sm"
+            >
+              + Add Order
+            </button>
+          </div>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition font-medium shadow-sm"
-        >
-          + Add Order
-        </button>
+        {importResult && (
+          <div className={`mt-2 p-2 text-sm rounded ${importResult.startsWith('✓') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {importResult}
+          </div>
+        )}
       </div>
 
       <DataTable
@@ -226,6 +320,13 @@ export function OrdersPage() {
         onDelete={(order) => handleDelete(order.id)}
         searchable={true}
         searchKeys={['id', 'status', 'user_id']}
+        customActions={[
+          {
+            label: '📈 Timeline',
+            onClick: (order) => navigate(`/orders/${order.id}/timeline`),
+            className: 'text-blue-600 hover:text-blue-800'
+          }
+        ]}
       />
 
       {isModalOpen && (
