@@ -17,10 +17,15 @@ export function InventoryPage() {
     queryFn: inventoryApi.getAll,
   });
 
+  const invalidateInventoryData = () => {
+    queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    queryClient.invalidateQueries({ queryKey: ['analytics', 'inventory'] });
+  };
+
   const createMutation = useMutation({
     mutationFn: inventoryApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      invalidateInventoryData();
       closeModal();
     },
   });
@@ -29,7 +34,7 @@ export function InventoryPage() {
     mutationFn: ({ id, data }: { id: number; data: Partial<InventoryItemCreate> }) =>
       inventoryApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      invalidateInventoryData();
       closeModal();
     },
   });
@@ -37,7 +42,7 @@ export function InventoryPage() {
   const deleteMutation = useMutation({
     mutationFn: inventoryApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      invalidateInventoryData();
     },
   });
 
@@ -118,7 +123,7 @@ export function InventoryPage() {
       }
 
       setImportResult(`✓ Created: ${result.created_count}, Updated: ${result.updated_count}, Skipped: ${result.skipped_count}`);
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      invalidateInventoryData();
       
       if (result.errors && result.errors.length > 0) {
         console.warn('Import errors:', result.errors);

@@ -68,6 +68,55 @@ def list_inventory_items(
     items = crud.get_inventory_items(db, skip=skip, limit=limit)
     return items
 
+@app.get("/analytics")
+def get_analytics(
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.get_current_user)
+):
+    """
+    Get inventory analytics (authenticated users).
+    
+    Returns:
+        dict: Analytics data including total items, low stock, out of stock
+    """
+    total_items = db.query(func.count(models.InventoryItem.id)).scalar()
+    
+    # Out of stock
+    out_of_stock = db.query(func.count(models.InventoryItem.id)).filter(
+        models.InventoryItem.qty == 0
+    ).scalar()
+    
+    # Low stock (less than 20)
+    low_stock = db.query(func.count(models.InventoryItem.id)).filter(
+        models.InventoryItem.qty > 0,
+        models.InventoryItem.qty < 20
+    ).scalar()
+    
+    # Total quantity across all items
+    total_quantity = db.query(func.sum(models.InventoryItem.qty)).scalar() or 0
+    
+    # Get low stock items for alerts (no hard limit)
+    low_stock_items = db.query(models.InventoryItem).filter(
+        models.InventoryItem.qty < 20
+    ).order_by(models.InventoryItem.qty).all()
+    
+    low_stock_list = [
+        {
+            "id": item.id,
+            "sku": item.sku,
+            "qty": item.qty
+        }
+        for item in low_stock_items
+    ]
+    
+    return {
+        "total_items": total_items,
+        "total_quantity": total_quantity,
+        "out_of_stock": out_of_stock,
+        "low_stock": low_stock,
+        "low_stock_items": low_stock_list
+    }
+
 @app.get("/{item_id}", response_model=schemas.InventoryItem)
 def get_inventory_item(
     item_id: int,
@@ -291,51 +340,3 @@ def import_inventory_csv(
     }
 
 
-@app.get("/analytics")
-def get_analytics(
-    db: Session = Depends(get_db),
-    current_user: auth.CurrentUser = Depends(auth.get_current_user)
-):
-    """
-    Get inventory analytics (authenticated users).
-    
-    Returns:
-        dict: Analytics data including total items, low stock, out of stock
-    """
-    total_items = db.query(func.count(models.InventoryItem.id)).scalar()
-    
-    # Out of stock
-    out_of_stock = db.query(func.count(models.InventoryItem.id)).filter(
-        models.InventoryItem.qty == 0
-    ).scalar()
-    
-    # Low stock (less than 20)
-    low_stock = db.query(func.count(models.InventoryItem.id)).filter(
-        models.InventoryItem.qty > 0,
-        models.InventoryItem.qty < 20
-    ).scalar()
-    
-    # Total quantity across all items
-    total_quantity = db.query(func.sum(models.InventoryItem.qty)).scalar() or 0
-    
-    # Get low stock items for alerts
-    low_stock_items = db.query(models.InventoryItem).filter(
-        models.InventoryItem.qty < 20
-    ).order_by(models.InventoryItem.qty).limit(10).all()
-    
-    low_stock_list = [
-        {
-            "id": item.id,
-            "sku": item.sku,
-            "qty": item.qty
-        }
-        for item in low_stock_items
-    ]
-    
-    return {
-        "total_items": total_items,
-        "total_quantity": total_quantity,
-        "out_of_stock": out_of_stock,
-        "low_stock": low_stock,
-        "low_stock_items": low_stock_list
-    }
