@@ -39,7 +39,6 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="orders-service")
 
-
 def log_order_event(
     db: Session,
     order_id: str,
@@ -187,7 +186,6 @@ def get_timeseries(
     start_dt = datetime.utcnow() - timedelta(days=days - 1)
 
     # Base query filtered by date range
-    from sqlalchemy import cast, Date
     base_query = db.query(
         func.date_trunc('day', models.Order.created_at).label('day'),
         func.count(models.Order.id).label('orders'),
@@ -238,7 +236,6 @@ def get_revenue_forecast(
 
     Returns history (last 90 days), forecast with bands, and recent anomalies.
     """
-    from datetime import date as ddate
     days = max(1, min(days, 90))
     history_days = 90
     start_dt = datetime.utcnow() - timedelta(days=history_days - 1)
@@ -306,10 +303,40 @@ def get_revenue_forecast(
     avg = (sum(y) / len(y)) if y else 0.0
     strong_trend = avg > 0 and abs(slope) / max(1e-9, avg) > 0.02  # >2% change per day average
 
-    if method not in ("auto", "linear", "exp"):
+    if method not in ("auto", "linear", "exp", "hw"):
         method = "auto"
 
-    if method == "linear" or (method == "auto" and strong_trend):
+    # Optional Holt-Winters seasonal method (statsmodels)
+    def holt_winters(y_vals, horizon, seasonal_periods=7):
+        try:
+            import pandas as pd
+            from statsmodels.tsa.holtwinters import ExponentialSmoothing
+            if not y_vals:
+                return [0.0] * horizon, []
+            idx = pd.date_range(end=pd.Timestamp.utcnow().normalize(), periods=len(y_vals), freq='D')
+            s = pd.Series(y_vals, index=idx)
+            model = ExponentialSmoothing(s, trend='add', seasonal='mul', seasonal_periods=seasonal_periods)
+            fit = model.fit(optimized=True)
+            fc = fit.forecast(horizon)
+            fitted = fit.fittedvalues.reindex(s.index).fillna(method='bfill').tolist()
+            return [max(0.0, float(v)) for v in fc.tolist()], [max(0.0, float(v)) for v in fitted]
+        except Exception:
+            # Fallback to exponential smoothing if statsmodels not available/fit fails
+            fcast, fitted = holt_linear(y_vals, horizon)
+            return fcast, fitted
+
+    auto_pick = None
+    if method == "auto":
+        if strong_trend and not use_weekday:
+            auto_pick = "linear"
+        elif use_weekday and len(y) >= 28:
+            auto_pick = "hw"
+        else:
+            auto_pick = "exp"
+
+    chosen_method = method if method != "auto" else auto_pick
+
+    if chosen_method == "linear":
         y_hat = linear_forecast(y, days)
         fitted_hist = []
         # build fitted for linear
@@ -325,7 +352,14 @@ def get_revenue_forecast(
             a = (y_sum - b * t_sum) / n
             fitted_hist = [max(0.0, a + b * i) for i in range(n)]
         chosen = "linear"
+    elif chosen_method == "exp":
+        y_hat, fitted_hist = holt_linear(y, days)
+        chosen = "exp"
+    elif chosen_method == "hw":
+        y_hat, fitted_hist = holt_winters(y, days, seasonal_periods=7)
+        chosen = "hw"
     else:
+        # default fallback
         y_hat, fitted_hist = holt_linear(y, days)
         chosen = "exp"
 

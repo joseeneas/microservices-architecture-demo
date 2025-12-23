@@ -11,7 +11,7 @@ interface Preferences {
   theme?: 'light' | 'dark';
   language?: 'en' | 'es' | 'pt';
   chartPalette?: 'brand' | 'accessible' | 'auto';
-  forecastMethod?: 'auto' | 'linear' | 'exp';
+  forecastMethod?: 'auto' | 'linear' | 'exp' | 'hw';
   forecastSeasonality?: 'auto' | 'weekday' | 'none';
   forecastConfidence?: 80 | 95 | 99;
   tablePreferences?: {

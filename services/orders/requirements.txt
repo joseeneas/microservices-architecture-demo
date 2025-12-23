@@ -18,3 +18,7 @@ psycopg2-binary
 httpx
 python-jose[cryptography]
 python-multipart
+numpy
+pandas
+scipy
+statsmodels==0.14.2

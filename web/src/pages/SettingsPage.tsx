@@ -8,7 +8,7 @@ export function SettingsPage() {
   const [chartPalette, setChartPalette] = useState<'brand' | 'accessible' | 'auto'>(preferences.chartPalette || 'accessible');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [forecastMethod, setForecastMethod] = useState<'auto' | 'linear' | 'exp'>(preferences.forecastMethod || 'auto');
+  const [forecastMethod, setForecastMethod] = useState<'auto' | 'linear' | 'exp' | 'hw'>(preferences.forecastMethod as any || 'auto');
   const [forecastSeasonality, setForecastSeasonality] = useState<'auto' | 'weekday' | 'none'>(preferences.forecastSeasonality || 'auto');
   const [forecastConfidence, setForecastConfidence] = useState<80 | 95 | 99>((preferences.forecastConfidence as 80|95|99) || 95);
 
@@ -165,6 +165,17 @@ export function SettingsPage() {
               <div className="text-left">
                 <div className="font-medium mb-1">Exponential</div>
                 <div className="text-xs text-muted">Holt’s linear trend</div>
+              </div>
+            </button>
+            <button
+              onClick={() => setForecastMethod('hw')}
+              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                forecastMethod === 'hw' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <div className="text-left">
+                <div className="font-medium mb-1">Holt‑Winters</div>
+                <div className="text-xs text-muted">Trend + weekly seasonality</div>
               </div>
             </button>
           </div>

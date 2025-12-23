@@ -356,7 +356,7 @@ export function DashboardPage() {
                             r={4}
                             fill="#ef4444"
                             stroke="#ef4444"
-                            style={{ cursor: 'pointer' }}
+                            className="cursor-pointer"
                             onClick={() => navigate(`/orders?date=${payload.date}`)}
                           />
                         </g>
@@ -370,7 +370,6 @@ export function DashboardPage() {
             <p className="text-muted">No data</p>
           )}
         </div>
-
         {/* Signups */}
         {user?.role === 'admin' && (
           <div className="bg-white rounded-lg shadow p-6 w-full">
@@ -394,7 +393,6 @@ export function DashboardPage() {
           </div>
         )}
       </div>
-
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
         {/* Order status pie */}
@@ -420,7 +418,6 @@ export function DashboardPage() {
             <p className="text-muted">No data</p>
           )}
         </div>
-
         {/* User roles bar (admin only) */}
         {user?.role === 'admin' ? (
           <div className="bg-white rounded-lg shadow p-6 w-full">
@@ -447,7 +444,6 @@ export function DashboardPage() {
             <p className="text-3xl font-semibold">{orderAnalytics?.recent_orders_7d ?? 0}</p>
           </div>
         )}
-
         {/* Low stock bar */}
         <div className="bg-white rounded-lg shadow p-6 w-full">
           <h3 className="text-lg font-bold text-onSurface mb-4">Low Stock (Top 10)</h3>
@@ -468,7 +464,6 @@ export function DashboardPage() {
           )}
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         {/* Recent Orders (Table) */}
         <div className="w-[75%] mx-auto lg:w-full lg:mx-0">
@@ -518,7 +513,6 @@ export function DashboardPage() {
             )}
           </div>
         </div>
-
         {/* Low Stock (Table) */}
         <div className="w-[75%] mx-auto lg:w-full lg:mx-0">
           <div className="bg-white rounded-lg shadow p-6">
@@ -542,7 +536,6 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
-
       {/* Status Breakdown (Chart replaces table) */}
       {user?.role === 'admin' && statusData.length > 0 && (
         <div className="w-[50%] mx-auto">
@@ -552,7 +545,7 @@ export function DashboardPage() {
               {({ width, height }) => (
                 <PieChart width={width} height={height}>
                   <Pie data={statusData} dataKey="value" nameKey="name" outerRadius={100} label>
-{statusData.map((s, index) => {
+                    {statusData.map((s, index) => {
                       const key = (s.name || '').toLowerCase();
                       const fill = STATUS_COLORS[key] || COLORS[index % COLORS.length];
                       return <Cell key={`cell-admin-${index}`} fill={fill} />;

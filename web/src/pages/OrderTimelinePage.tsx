@@ -138,9 +138,7 @@ const OrderTimelinePage: React.FC = () => {
                 <div key={event.id} className="relative flex items-start">
                   {/* Icon */}
                   <div
-                    className={`flex-shrink-0 w-16 h-16 rounded-full border-2 flex items-center justify-center text-2xl z-10 ${getEventColor(
-                      event.event_type
-                    )}`}
+                    className={`shrink-0 w-16 h-16 rounded-full border-2 flex items-center justify-center text-2xl z-10 ${getEventColor(event.event_type)}`}
                   >
                     {getEventIcon(event.event_type)}
                   </div>
