@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ordersApi } from '../services/ordersApi';
 import { usersApi } from '../services/usersApi';
@@ -9,6 +9,7 @@ import type { Order, OrderCreate, OrderItem } from '../types';
 
 export function OrdersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -270,6 +271,11 @@ export function OrdersPage() {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
 
+  // Optional date filter from query string
+  const params = new URLSearchParams(location.search);
+  const dateFilter = params.get('date');
+  const filtered = (orders || []).filter(o => !dateFilter || (o.created_at && o.created_at.startsWith(dateFilter)));
+
   return (
     <div>
       <div className="mb-6">
@@ -314,12 +320,12 @@ export function OrdersPage() {
       </div>
 
       <DataTable
-        data={orders || []}
+        data={filtered}
         columns={columns}
         onEdit={openEditModal}
         onDelete={(order) => handleDelete(order.id)}
         searchable={true}
-        searchKeys={['id', 'status', 'user_id']}
+        searchKeys={['id', 'status', 'user_id', 'created_at']}
         customActions={[
           {
             label: '📈 Timeline',

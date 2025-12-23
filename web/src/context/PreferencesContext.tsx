@@ -10,6 +10,10 @@ interface TablePreferences {
 interface Preferences {
   theme?: 'light' | 'dark';
   language?: 'en' | 'es' | 'pt';
+  chartPalette?: 'brand' | 'accessible' | 'auto';
+  forecastMethod?: 'auto' | 'linear' | 'exp';
+  forecastSeasonality?: 'auto' | 'weekday' | 'none';
+  forecastConfidence?: 80 | 95 | 99;
   tablePreferences?: {
     users?: TablePreferences;
     orders?: TablePreferences;
@@ -31,6 +35,10 @@ export const PreferencesProvider = ({ children }: { children: ReactNode }) => {
   const [preferences, setPreferences] = useState<Preferences>({
     theme: 'light',
     language: 'en',
+    chartPalette: 'accessible',
+    forecastMethod: 'auto',
+    forecastSeasonality: 'auto',
+    forecastConfidence: 95,
     tablePreferences: {},
   });
   const [loading, setLoading] = useState(true);

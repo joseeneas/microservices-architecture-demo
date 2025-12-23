@@ -249,6 +249,41 @@ def get_analytics(
         "recent_signups_7d": recent_signups
     }
 
+
+@app.get("/analytics/timeseries")
+def get_timeseries(
+    days: int = 30,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Time-series for user signups over the past N days (defaults to 30).
+
+    Returns list of {date, signups} for each day inclusive.
+    """
+    days = max(1, min(days, 180))
+    start_dt = datetime.utcnow() - timedelta(days=days - 1)
+
+    rows = (
+        db.query(
+            func.date_trunc('day', models.User.created_at).label('day'),
+            func.count(models.User.id).label('signups')
+        )
+        .filter(models.User.created_at >= start_dt)
+        .group_by(func.date_trunc('day', models.User.created_at))
+        .order_by(func.date_trunc('day', models.User.created_at))
+        .all()
+    )
+
+    data_map = {r.day.date(): int(r.signups) for r in rows}
+
+    series = []
+    for i in range(days):
+        d = (start_dt + timedelta(days=i)).date()
+        series.append({"date": d.isoformat(), "signups": data_map.get(d, 0)})
+
+    return {"days": days, "series": series}
+
 @app.get("/", response_model=List[schemas.User])
 def list_users(
     skip: int = 0,

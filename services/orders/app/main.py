@@ -171,6 +171,258 @@ def get_analytics(
         "recent_orders": recent_orders_list
     }
 
+
+@app.get("/analytics/timeseries")
+def get_timeseries(
+    days: int = 30,
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.get_current_user)
+):
+    """
+    Time-series for orders over the past N days (defaults to 30).
+
+    Returns list of {date, orders, revenue} for each day inclusive.
+    """
+    days = max(1, min(days, 180))  # clamp to sane bounds
+    start_dt = datetime.utcnow() - timedelta(days=days - 1)
+
+    # Base query filtered by date range
+    from sqlalchemy import cast, Date
+    base_query = db.query(
+        func.date_trunc('day', models.Order.created_at).label('day'),
+        func.count(models.Order.id).label('orders'),
+        func.coalesce(func.sum(models.Order.total), 0).label('revenue')
+    ).filter(models.Order.created_at >= start_dt)
+
+    if current_user.role != "admin":
+        base_query = base_query.filter(models.Order.user_id == current_user.id)
+
+    rows = (
+        base_query
+        .group_by(func.date_trunc('day', models.Order.created_at))
+        .order_by(func.date_trunc('day', models.Order.created_at))
+        .all()
+    )
+
+    # Map existing days
+    data_map = {r.day.date(): {"orders": int(r.orders), "revenue": float(r.revenue)} for r in rows}
+
+    # Fill missing days with zeros
+    series = []
+    for i in range(days):
+        d = (start_dt + timedelta(days=i)).date()
+        entry = data_map.get(d, {"orders": 0, "revenue": 0.0})
+        series.append({"date": d.isoformat(), **entry})
+
+    return {"days": days, "series": series}
+
+
+@app.get("/analytics/forecast")
+def get_revenue_forecast(
+    days: int = 30,
+    method: str = "auto",
+    seasonality: str = "auto",  # 'none' | 'weekday' | 'auto'
+    conf: float = 0.95,  # 0.80, 0.95, 0.99
+    db: Session = Depends(get_db),
+    current_user: auth.CurrentUser = Depends(auth.get_current_user)
+):
+    """
+    Forecast daily revenue for the next N days.
+
+    Uses lightweight models implemented in pure Python:
+    - linear: least-squares linear regression over daily revenue
+    - exp: Holt's linear trend (double exponential smoothing)
+    - auto: picks linear if trend is strong; otherwise exp
+
+    Adds optional weekday seasonality and confidence bands.
+
+    Returns history (last 90 days), forecast with bands, and recent anomalies.
+    """
+    from datetime import date as ddate
+    days = max(1, min(days, 90))
+    history_days = 90
+    start_dt = datetime.utcnow() - timedelta(days=history_days - 1)
+
+    # Aggregate daily revenue (respect auth scope)
+    base = db.query(
+        func.date_trunc('day', models.Order.created_at).label('day'),
+        func.coalesce(func.sum(models.Order.total), 0).label('revenue')
+    ).filter(models.Order.created_at >= start_dt)
+
+    if current_user.role != "admin":
+        base = base.filter(models.Order.user_id == current_user.id)
+
+    rows = base.group_by(func.date_trunc('day', models.Order.created_at)) \
+               .order_by(func.date_trunc('day', models.Order.created_at)) \
+               .all()
+
+    # Map by date and fill missing days
+    hist_map = {r.day.date(): float(r.revenue) for r in rows}
+    series = []
+    for i in range(history_days):
+        d = (start_dt + timedelta(days=i)).date()
+        series.append({"date": d.isoformat(), "revenue": hist_map.get(d, 0.0)})
+
+    y = [pt["revenue"] for pt in series]
+
+    def linear_forecast(y_vals, horizon):
+        n = len(y_vals)
+        if n == 0:
+            return [0.0] * horizon
+        # t = 0..n-1
+        t_sum = (n - 1) * n / 2
+        t2_sum = (n - 1) * n * (2 * n - 1) / 6
+        y_sum = sum(y_vals)
+        ty_sum = sum(i * y_vals[i] for i in range(n))
+        denom = n * t2_sum - t_sum * t_sum
+        if denom == 0:
+            b = 0.0
+        else:
+            b = (n * ty_sum - t_sum * y_sum) / denom
+        a = (y_sum - b * t_sum) / n
+        last_t = n - 1
+        return [max(0.0, a + b * (last_t + m)) for m in range(1, horizon + 1)]
+
+    def holt_linear(y_vals, horizon, alpha=0.5, beta=0.3):
+        if not y_vals:
+            return [0.0] * horizon, []
+        L = y_vals[0]
+        T = y_vals[1] - y_vals[0] if len(y_vals) > 1 else 0.0
+        fitted = [L]  # initial fitted approx
+        for i in range(1, len(y_vals)):
+            y_t = y_vals[i]
+            L_new = alpha * y_t + (1 - alpha) * (L + T)
+            T_new = beta * (L_new - L) + (1 - beta) * T
+            fitted.append(L + T)  # one-step-ahead fit for time i
+            L, T = L_new, T_new
+        forecast_vals = [max(0.0, L + m * T) for m in range(1, horizon + 1)]
+        return forecast_vals, fitted
+
+    # Pick model
+    slope = 0.0
+    if len(y) >= 2:
+        # quick slope estimate via first/last
+        slope = (y[-1] - y[0]) / max(1, len(y) - 1)
+    avg = (sum(y) / len(y)) if y else 0.0
+    strong_trend = avg > 0 and abs(slope) / max(1e-9, avg) > 0.02  # >2% change per day average
+
+    if method not in ("auto", "linear", "exp"):
+        method = "auto"
+
+    if method == "linear" or (method == "auto" and strong_trend):
+        y_hat = linear_forecast(y, days)
+        fitted_hist = []
+        # build fitted for linear
+        n = len(y)
+        if n >= 2:
+            # recompute a,b from linear fit
+            t_sum = (n - 1) * n / 2
+            t2_sum = (n - 1) * n * (2 * n - 1) / 6
+            y_sum = sum(y)
+            ty_sum = sum(i * y[i] for i in range(n))
+            denom = n * t2_sum - t_sum * t_sum
+            b = 0.0 if denom == 0 else (n * ty_sum - t_sum * y_sum) / denom
+            a = (y_sum - b * t_sum) / n
+            fitted_hist = [max(0.0, a + b * i) for i in range(n)]
+        chosen = "linear"
+    else:
+        y_hat, fitted_hist = holt_linear(y, days)
+        chosen = "exp"
+
+    # Seasonality (weekday) auto-detect or enforced
+    use_weekday = False
+    if seasonality == "weekday":
+        use_weekday = True
+    elif seasonality == "auto":
+        if len(series) >= 28 and sum(y) > 0:
+            # compute weekday means
+            import statistics
+            by_wd = {i: [] for i in range(7)}
+            for idx, pt in enumerate(series):
+                wd = datetime.strptime(pt["date"], "%Y-%m-%d").date().weekday()
+                by_wd[wd].append(pt["revenue"])
+            wd_means = [ (sum(vals)/len(vals) if vals else 0.0) for wd, vals in sorted(by_wd.items()) ]
+            overall = sum(y)/len(y)
+            if overall > 0:
+                try:
+                    stdev = statistics.pstdev(wd_means)
+                except Exception:
+                    stdev = 0.0
+                if stdev/overall > 0.1:
+                    use_weekday = True
+
+    # weekday factors
+    wd_factor = {i: 1.0 for i in range(7)}
+    if use_weekday and sum(y) > 0:
+        by_wd = {i: [] for i in range(7)}
+        for pt in series:
+            wd = datetime.strptime(pt["date"], "%Y-%m-%d").date().weekday()
+            by_wd[wd].append(pt["revenue"])
+        overall = sum(y)/len(y)
+        for i in range(7):
+            m = (sum(by_wd[i])/len(by_wd[i])) if by_wd[i] else overall
+            wd_factor[i] = (m/overall) if overall > 0 else 1.0
+
+    # Apply seasonality to fitted (for residuals) and forecasts
+    if use_weekday:
+        for i, pt in enumerate(series):
+            wd = datetime.strptime(pt["date"], "%Y-%m-%d").date().weekday()
+            if i < len(fitted_hist):
+                fitted_hist[i] *= wd_factor[wd]
+        for m in range(days):
+            # future weekday index
+            pass
+
+    # Residual std for bands
+    import math
+    residuals = []
+    for i in range(min(len(y), len(fitted_hist))):
+        residuals.append(y[i] - fitted_hist[i])
+    sigma = (math.sqrt(sum(r*r for r in residuals)/len(residuals)) if residuals else 0.0)
+    # map confidence to z (two-sided)
+    if conf >= 0.99:
+        z = 2.576
+    elif conf >= 0.95:
+        z = 1.96
+    else:
+        z = 1.282  # ~80%
+
+    # Build forecast dates starting after last history date
+    last_date = datetime.strptime(series[-1]["date"], "%Y-%m-%d").date() if series else datetime.utcnow().date()
+    forecast = []
+    for m in range(1, days + 1):
+        nd = last_date + timedelta(days=m)
+        y_f = float(y_hat[m - 1])
+        if use_weekday:
+            wd = nd.weekday()
+            y_f *= wd_factor.get(wd, 1.0)
+        lower = max(0.0, y_f - z * sigma)
+        upper = max(lower, y_f + z * sigma)
+        forecast.append({"date": nd.isoformat(), "revenue": y_f, "lower": lower, "upper": upper})
+
+    # Anomalies for last 30 days based on residual z-score
+    anomalies = []
+    if residuals:
+        mean_res = sum(residuals)/len(residuals)
+        var = sum((r-mean_res)**2 for r in residuals)/len(residuals)
+        std = math.sqrt(var) if var > 0 else 0.0
+        recent = series[-30:] if len(series) > 30 else series
+        for i, pt in enumerate(recent):
+            idx = len(series) - len(recent) + i
+            if idx < len(fitted_hist):
+                res = pt["revenue"] - fitted_hist[idx]
+                if std > 0 and abs(res - mean_res) / std >= 2.5:
+                    anomalies.append({"date": pt["date"], "revenue": pt["revenue"], "z": (res - mean_res) / std})
+
+    return {
+        "days": days,
+        "method": chosen,
+        "seasonality": ("weekday" if use_weekday else "none"),
+        "history": series,
+        "forecast": forecast,
+        "anomalies": anomalies,
+    }
+
 @app.get("/{order_id}", response_model=schemas.Order)
 def get_order(
     order_id: str,
